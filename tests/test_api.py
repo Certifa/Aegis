@@ -66,6 +66,12 @@ def test_root_serves_console_ui(client: TestClient) -> None:
     assert "<!DOCTYPE html>" in response.text
 
 
+def test_policy_endpoint(client: TestClient) -> None:
+    response = client.get("/policy")
+    assert response.status_code == 200
+    assert "principal: alice@corp" in response.json()["policy_yaml"]
+
+
 # -- /act -----------------------------------------------------------------------
 
 
