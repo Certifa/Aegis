@@ -1,7 +1,8 @@
-// Aegis Console UI Interactive Controller
+// Aegis Console UI Interactive Controller (Industrial Anchor)
 
 state = {
   logEntries: [],
+  receiptCache: {}, // Cache plain-English receipt texts by seq
   verifyResult: { ok: true, count: 0, broken_at: null, why: null },
   activeOutcomeFilter: 'ALL',
   searchQuery: '',
@@ -165,10 +166,26 @@ async function openPolicyModal() {
   }
 }
 
-function inspectReceipt(seq) {
+async function fetchReceiptText(seq) {
+  if (state.receiptCache[seq]) return state.receiptCache[seq];
+  try {
+    const res = await fetch(`/receipt/${seq}`);
+    if (res.ok) {
+      const data = await res.json();
+      state.receiptCache[seq] = data.text;
+      return data.text;
+    }
+  } catch (e) {
+    console.warn(`Failed to fetch receipt for seq ${seq}`, e);
+  }
+  return null;
+}
+
+async function inspectReceipt(seq) {
   const entry = state.logEntries.find(e => e.seq === seq);
   if (!entry) return;
 
+  const plainText = await fetchReceiptText(seq);
   const receiptModal = document.getElementById('receiptModal');
   const container = document.getElementById('receiptModalContent');
 
@@ -176,7 +193,11 @@ function inspectReceipt(seq) {
 
   container.innerHTML = `
     <div class="receipt-card">
-      <div class="receipt-row">
+      <div style="background:var(--bg-card); border:1px solid var(--border-strong); padding:10px; font-weight:700; color:${entry.decision.outcome === 'ALLOW' ? 'var(--signal-allow)' : entry.decision.outcome === 'STEP_UP' ? 'var(--signal-stepup)' : 'var(--signal-deny)'}; font-size:13px;">
+        💬 ${plainText || entry.decision.reason_code}
+      </div>
+
+      <div class="receipt-row" style="margin-top:6px;">
         <span class="receipt-key">Sequence Number:</span>
         <span class="receipt-val">#${entry.seq}</span>
       </div>
@@ -198,7 +219,7 @@ function inspectReceipt(seq) {
       </div>
       <div class="receipt-row">
         <span class="receipt-key">Decision Outcome:</span>
-        <span class="receipt-val" style="color: ${entry.decision.outcome === 'ALLOW' ? '#10B981' : entry.decision.outcome === 'STEP_UP' ? '#F59E0B' : '#EF4444'}; font-weight:700;">
+        <span class="receipt-val" style="color: ${entry.decision.outcome === 'ALLOW' ? 'var(--signal-allow)' : entry.decision.outcome === 'STEP_UP' ? 'var(--signal-stepup)' : 'var(--signal-deny)'}; font-weight:700;">
           ${entry.decision.outcome}
         </span>
       </div>
@@ -212,11 +233,11 @@ function inspectReceipt(seq) {
       </div>
       <div class="receipt-row" style="flex-direction:column; gap:4px; margin-top:8px;">
         <span class="receipt-key">Cryptographic Entry Hash:</span>
-        <span class="receipt-val" style="word-break:break-all; font-size:11px;">${entry.entry_hash}</span>
+        <span class="receipt-val" style="word-break:break-all; font-size:10px;">${entry.entry_hash}</span>
       </div>
       <div class="receipt-row" style="flex-direction:column; gap:4px;">
         <span class="receipt-key">Ed25519 Signature:</span>
-        <span class="receipt-val" style="word-break:break-all; font-size:11px;">${entry.signature}</span>
+        <span class="receipt-val" style="word-break:break-all; font-size:10px;">${entry.signature}</span>
       </div>
     </div>
   `;
@@ -249,10 +270,20 @@ async function fetchLogEntries() {
       state.logEntries = await res.json();
       updateMetrics();
       populateTamperSelect();
+      await prefetchReceipts();
       renderLogStream();
     }
   } catch (err) {
     console.error('Error fetching logs:', err);
+  }
+}
+
+async function prefetchReceipts() {
+  // Pre-fetch plain English receipts for all entries
+  for (const entry of state.logEntries) {
+    if (!state.receiptCache[entry.seq]) {
+      await fetchReceiptText(entry.seq);
+    }
   }
 }
 
@@ -414,16 +445,16 @@ function renderIntegrityBanner() {
     banner.className = 'banner-card integrity-banner intact';
     checkIcon.classList.remove('hidden');
     alertIcon.classList.add('hidden');
-    title.textContent = 'Provenance Chain Intact';
-    cryptoChip.textContent = `SHA-256 Chain · Ed25519 Signed (${count} Verified)`;
+    title.textContent = '[ ✓ CHAIN VERIFIED — ALL REPLICATED ENTRIES INTACT ]';
+    cryptoChip.textContent = `SHA-256 CHAIN · ED25519 SIGNED (${count} ENTRIES)`;
     desc.textContent = `All ${count} log entries strictly verified against tamper-proof cryptographic signatures. No unauthorized modifications detected.`;
   } else {
     banner.className = 'banner-card integrity-banner broken';
     checkIcon.classList.add('hidden');
     alertIcon.classList.remove('hidden');
-    title.textContent = `CRITICAL: Log Tampering Detected at Sequence #${broken_at}`;
-    cryptoChip.textContent = `CORRUPTED: ${why}`;
-    desc.textContent = `Verification failed on entry seq #${broken_at}. Reason code: '${why}'. Chain link or signature validation failed!`;
+    title.textContent = `[ 🚨 CRITICAL PROVENANCE TAMPER DETECTED AT SEQ #${broken_at} ]`;
+    cryptoChip.textContent = `CHAIN BROKEN: ${why.toUpperCase()}`;
+    desc.textContent = `Verification failure on entry sequence #${broken_at}. Reason: '${why}'. Chain link or cryptographic signature validation failed!`;
   }
 }
 
@@ -447,6 +478,7 @@ function renderLogStream() {
         e.request.agent.toLowerCase().includes(q) ||
         e.decision.reason_code.toLowerCase().includes(q) ||
         (e.decision.matched_rule && e.decision.matched_rule.toLowerCase().includes(q)) ||
+        (state.receiptCache[e.seq] && state.receiptCache[e.seq].toLowerCase().includes(q)) ||
         JSON.stringify(e.request.args).toLowerCase().includes(q)
       );
     });
@@ -468,6 +500,7 @@ function renderLogStream() {
     
     const tsDate = new Date(entry.ts);
     const formattedTs = tsDate.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+    const plainReceipt = state.receiptCache[entry.seq] || null;
 
     let argsHtml = '';
     if (entry.request.args && Object.keys(entry.request.args).length > 0) {
@@ -478,15 +511,20 @@ function renderLogStream() {
     }
 
     card.innerHTML = `
+      ${isTamperedTarget ? `
+        <div style="background:var(--signal-deny); color:#000; padding:6px 12px; font-weight:700; font-size:11px; letter-spacing:1px;">
+          🚨 CRITICAL: PROVENANCE CHAIN LINK BROKEN AT SEQ #${entry.seq} — REASON: ${state.verifyResult.why}
+        </div>
+      ` : ''}
+
       <div class="log-header">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="log-seq-tag">#${entry.seq}</span>
           <span class="log-outcome-badge">${entry.decision.outcome}</span>
-          ${isTamperedTarget ? '<span class="demo-pill">TAMPERED ROW</span>' : ''}
         </div>
         <div class="log-meta-right">
-          <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="inspectReceipt(${entry.seq})">
-            🔍 Inspect Receipt
+          <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="inspectReceipt(${entry.seq})">
+            🔍 Receipt
           </button>
           <span class="log-ts">${formattedTs}</span>
         </div>
@@ -499,6 +537,12 @@ function renderLogStream() {
           <span class="reason-chip">code: ${entry.decision.reason_code}</span>
           ${entry.decision.matched_rule ? `<span class="matched-rule">rule: ${entry.decision.matched_rule}</span>` : ''}
         </div>
+
+        ${plainReceipt ? `
+          <div style="font-size:12px; font-weight:600; color:var(--text-primary); padding:6px 10px; background:var(--bg-input); border:1px solid var(--border-hairline);">
+            💬 ${plainReceipt}
+          </div>
+        ` : ''}
 
         ${argsHtml}
 
