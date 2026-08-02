@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# provenance log written at runtime — never commit a chain
+*.jsonl
+
+# private, per-developer instructions
+CLAUDE.local.md
