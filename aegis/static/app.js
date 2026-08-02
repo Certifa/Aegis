@@ -32,6 +32,13 @@ function setupEventListeners() {
     await runDemo('/demo/benign');
   });
 
+  document.getElementById('btnOverreach').addEventListener('click', async () => {
+    // No injection anywhere in this path: the agent is asked to pay an invoice
+    // and does exactly that. It is refused because it holds more payment
+    // authority than it should.
+    await runDemo('/demo/overreach');
+  });
+
   document.getElementById('btnInjected').addEventListener('click', async () => {
     await runDemo('/demo/injected');
   });
@@ -199,7 +206,7 @@ function inspectRow(seq) {
   const seqNum = document.getElementById('inspectSeqNum');
   const body = document.getElementById('inspectPanelBody');
 
-  seqNum.textContent = entry.seq;
+  seqNum.textContent = String(entry.seq).padStart(4, '0');
 
   const plainText = state.receiptCache[seq] || entry.decision.reason_code;
   const isTampered = (!state.verifyResult.ok && state.verifyResult.broken_at === entry.seq);
@@ -257,6 +264,7 @@ function inspectRow(seq) {
   `;
 
   panel.classList.remove('hidden');
+  renderChainStrip();
 }
 
 function closeInspectPanel() {
@@ -302,6 +310,7 @@ async function fetchLogEntries() {
       populateTamperSelect();
       await prefetchReceipts();
       renderLogStream();
+      renderChainStrip();
     }
   } catch (err) {
     console.error('Error fetching logs:', err);
@@ -327,6 +336,7 @@ async function verifyChain() {
       state.verifyResult = await res.json();
       renderIntegrityBanner();
       renderLogStream();
+      renderChainStrip();
       if (state.selectedSeq !== null) {
         inspectRow(state.selectedSeq);
       }
@@ -458,6 +468,76 @@ function populateTamperSelect() {
   });
 }
 
+function renderChainStrip() {
+  const strip = document.getElementById('chainStrip');
+  const meta = document.getElementById('chainMeta');
+  if (!strip) return;
+
+  // /log is newest-first for the table. The chain is only meaningful in the
+  // order it was written, so reverse it back to oldest-first here.
+  const nodes = [...state.logEntries].sort((a, b) => a.seq - b.seq);
+  const { ok, broken_at } = state.verifyResult;
+
+  if (meta) {
+    meta.textContent = ok
+      ? `${nodes.length} nodes linked`
+      : `${nodes.length} nodes, link broken at ${broken_at}`;
+  }
+
+  if (nodes.length === 0) {
+    strip.innerHTML = '<span class="chain-empty">No entries yet. Run a scenario to build the chain.</span>';
+    return;
+  }
+
+  let html = '';
+  nodes.forEach((entry, i) => {
+    // Verification walks the chain and stops at the first failure, so anything
+    // past the break has not been verified at all. Rendering it as healthy
+    // would be a lie about what we actually know.
+    const isBroken = !ok && entry.seq === broken_at;
+    const isDead = !ok && entry.seq > broken_at;
+
+    if (i > 0) {
+      const linkBroken = !ok && entry.seq === broken_at;
+      const linkDead = !ok && entry.seq > broken_at;
+      const cls = linkBroken ? 'is-broken' : linkDead ? 'is-dead' : 'is-live';
+      html += `<span class="chain-link ${cls}" style="--i:${i}" aria-hidden="true">`;
+      if (linkBroken) {
+        html += '<span class="link-break-mark">&times;</span>'
+             +  '<span class="link-break-label">Link broken</span>';
+      }
+      html += '</span>';
+    }
+
+    const state_cls = isBroken ? 'is-broken' : isDead ? 'is-dead' : 'is-verified';
+    const selected = state.selectedSeq === entry.seq ? ' is-selected' : '';
+    const label = isBroken
+      ? `Entry ${entry.seq}, ${entry.decision.outcome}, chain verification failed here`
+      : isDead
+        ? `Entry ${entry.seq}, ${entry.decision.outcome}, not verified`
+        : `Entry ${entry.seq}, ${entry.decision.outcome}, verified`;
+
+    html += `<button type="button" class="chain-node node-${entry.decision.outcome.toLowerCase()} ${state_cls}${selected}"
+                     style="--i:${i}" title="${label}" aria-label="${label}"
+                     onclick="inspectRow(${entry.seq})">
+               <span class="node-dot"></span>
+               <span class="node-seq">${String(entry.seq).padStart(4, '0')}</span>
+             </button>`;
+  });
+
+  strip.innerHTML = html;
+
+  // One motion beat, and only on a real state change. Auto-sync re-renders
+  // every 2.5s; sweeping on every render turns a beat into a throb.
+  const sig = ok ? 'ok:' + nodes.length : 'broken:' + broken_at;
+  if (state.lastChainSig !== undefined && state.lastChainSig !== sig) {
+    strip.classList.remove('is-sweeping');
+    void strip.offsetWidth;
+    strip.classList.add('is-sweeping');
+  }
+  state.lastChainSig = sig;
+}
+
 function renderIntegrityBanner() {
   const banner = document.getElementById('integrityBanner');
   const title = document.getElementById('integrityTitle');
@@ -465,18 +545,23 @@ function renderIntegrityBanner() {
   const cryptoChip = document.getElementById('cryptoChip');
 
   const { ok, count, broken_at, why } = state.verifyResult;
+  const live = document.getElementById('integrityLive');
 
   if (ok) {
     banner.className = 'banner-card intact';
+    // The stamp is decoration; this is the message assistive tech receives.
+    if (live) live.textContent = `Chain verified. ${count} entries intact.`;
     title.textContent = 'Provenance Chain Verified';
     cryptoChip.textContent = `SHA-256 Chain · Ed25519 Signed (${count} Verified)`;
     desc.textContent = `All ${count} log entries cryptographically verified against tamper-evident signatures. Zero anomalies detected.`;
   } else {
     banner.className = 'banner-card broken';
-    title.textContent = `Critical: Log Tampering Detected at Entry #${broken_at}`;
+    if (live) live.textContent = `Chain broken at exhibit ${String(broken_at).padStart(4, '0')}. Reason: ${why}.`;
+    title.textContent = `Chain Broken at Entry ${String(broken_at).padStart(4, '0')}`;
     cryptoChip.textContent = `Corrupted: ${why}`;
-    desc.textContent = `Verification failed on sequence #${broken_at}: ${getTamperExplanation(why)}`;
+    desc.textContent = `Verification failed at entry ${String(broken_at).padStart(4, '0')}: ${getTamperExplanation(why)}`;
   }
+
 }
 
 function renderLogStream() {
@@ -516,9 +601,9 @@ function renderLogStream() {
     const row = document.createElement('tr');
     const isTamperedTarget = (!state.verifyResult.ok && state.verifyResult.broken_at === entry.seq);
 
-    if (isTamperedTarget) {
-      row.className = 'row-tampered';
-    }
+    const rowClasses = ['row-' + entry.decision.outcome.toLowerCase()];
+    if (isTamperedTarget) rowClasses.push('row-tampered');
+    row.className = rowClasses.join(' ');
 
     const tsFormatted = new Date(entry.ts).toISOString().replace('T', ' ').substring(0, 19);
     const prose = state.receiptCache[entry.seq] || entry.decision.reason_code;
@@ -527,18 +612,17 @@ function renderLogStream() {
     row.onclick = () => inspectRow(entry.seq);
 
     row.innerHTML = `
-      <td class="seq-cell mono">#${entry.seq}</td>
+      <td class="seq-cell">${String(entry.seq).padStart(4, '0')}</td>
       <td class="ts-cell mono">${tsFormatted}</td>
       <td><span class="badge-outcome badge-${entry.decision.outcome}">${entry.decision.outcome}</span></td>
       <td class="tool-cell mono">${entry.request.tool}</td>
       <td class="principal-cell">${entry.request.principal}</td>
       <td class="prose-cell">
         <span class="prose-main">${prose}</span>
-        <span class="prose-reason mono">(${entry.decision.reason_code})</span>
+        <span class="prose-reason mono">${entry.decision.reason_code}</span>
+        ${entry.decision.outcome !== 'ALLOW' ? `<span class="void-mark">Did not execute</span>` : ''}
         ${isTamperedTarget ? `
-          <div style="color:var(--signal-deny); font-weight:600; font-size:11px; margin-top:4px;">
-            Critical Anomaly: ${getTamperExplanation(state.verifyResult.why)}
-          </div>
+          <span class="tamper-note">Anomaly: ${getTamperExplanation(state.verifyResult.why)}</span>
         ` : ''}
       </td>
       <td class="ts-cell mono" style="font-size:11px;">${hashFragment}</td>

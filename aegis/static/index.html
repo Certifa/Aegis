@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aegis — Policy &amp; Provenance Gateway</title>
+  <title>Aegis - Policy &amp; Provenance Gateway</title>
   
-  <!-- Fonts: Inter for UI, JetBrains Mono for Technical Data -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  
+  <!-- Fonts are self-hosted (see static/fonts.css). Nothing on this page
+       reaches a third-party origin: a provenance console that phones out to a
+       CDN on load is a bad answer to an obvious question, and it breaks any
+       offline or air-gapped demo. -->
+  <link rel="preload" href="/static/fonts/GeneralSans-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/IBMPlexMono-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -55,6 +56,7 @@
               <span class="chip-subtle mono" id="cryptoChip">SHA-256 Chain · Ed25519 Signed</span>
             </div>
             <p id="integrityDesc" class="banner-desc">All entries cryptographically verified against tamper-evident signatures. Zero anomalies detected.</p>
+            <p class="sr-only" role="status" aria-live="polite" id="integrityLive">Chain verified.</p>
           </div>
         </div>
 
@@ -62,6 +64,26 @@
           <button id="btnVerify" class="btn-primary-teal">
             <span>Run Chain Verification</span>
           </button>
+        </div>
+      </section>
+
+      <!-- THE CENTREPIECE: the provenance log drawn as what it actually is,
+           a run of nodes each cryptographically linked to the one before it.
+           The table further down is the detail; this strip is the proof. -->
+      <section class="chain-section" id="chainSection">
+        <div class="chain-head">
+          <span class="chain-title">Provenance Chain</span>
+          <span class="chain-meta mono" id="chainMeta">0 nodes</span>
+        </div>
+        <div class="chain-scroll">
+          <div class="chain-strip" id="chainStrip" role="img"
+               aria-label="Provenance chain visualisation. The written state is announced below."></div>
+        </div>
+        <div class="chain-legend">
+          <span class="legend-item"><span class="legend-dot legend-allow"></span>Allowed</span>
+          <span class="legend-item"><span class="legend-dot legend-stepup"></span>Step-up required</span>
+          <span class="legend-item"><span class="legend-dot legend-deny"></span>Denied</span>
+          <span class="legend-item"><span class="legend-dot legend-dead"></span>Unverified past a break</span>
         </div>
       </section>
 
@@ -75,6 +97,9 @@
             </button>
             <button id="btnInjected" class="btn-card btn-injected">
               <span>Run Injected Demo</span>
+            </button>
+            <button id="btnOverreach" class="btn-card btn-overreach">
+              <span>Run Over-reach Demo</span>
             </button>
             <button id="btnCustomAct" class="btn-card">
               <span>Simulate Action</span>
@@ -122,7 +147,7 @@
           <table class="audit-table">
             <thead>
               <tr>
-                <th style="width: 65px;">Seq</th>
+                <th style="width: 68px;">Seq</th>
                 <th style="width: 175px;">Timestamp (UTC)</th>
                 <th style="width: 110px;">Outcome</th>
                 <th style="width: 130px;">Tool</th>
@@ -147,7 +172,7 @@
         <!-- Right Side Drawer -->
         <aside class="drawer-panel hidden" id="inspectPanel">
           <div class="drawer-header">
-            <h3>Entry Details <span class="mono">#<span id="inspectSeqNum">0</span></span></h3>
+            <h3>Entry <span class="mono" id="inspectSeqNum">0000</span></h3>
             <button class="btn-close" id="btnCloseInspect">&times;</button>
           </div>
           <div class="drawer-body" id="inspectPanelBody">
