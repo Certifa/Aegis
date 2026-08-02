@@ -22,7 +22,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 
-from aegis.demo import BENIGN_SCRIPT, INJECTED_SCRIPT, ScriptedStep, replay
+from aegis.demo import (
+    BENIGN_SCRIPT,
+    INJECTED_SCRIPT,
+    OVERREACH_SCRIPT,
+    ScriptedStep,
+    replay,
+)
 from aegis.explainer import explain
 from aegis.interceptor import Interceptor
 from aegis.keys import load_or_generate_keypair
@@ -181,6 +187,18 @@ async def demo_benign(interceptor: InterceptorDep) -> list[ActResponse]:
 @app.post("/demo/injected")
 async def demo_injected(interceptor: InterceptorDep) -> list[ActResponse]:
     return await _run_script(INJECTED_SCRIPT, interceptor)
+
+
+@app.post("/demo/overreach")
+async def demo_overreach(interceptor: InterceptorDep) -> list[ActResponse]:
+    """An uncompromised agent, refused anyway.
+
+    No injection anywhere in this path — the agent is asked to pay an invoice
+    and does exactly that. It is blocked because it holds more payment authority
+    than it should, which is the failure mode that does not require anyone to be
+    fooled.
+    """
+    return await _run_script(OVERREACH_SCRIPT, interceptor)
 
 
 @app.post("/debug/tamper")

@@ -15,7 +15,7 @@ from uuid import uuid4
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
-CONTRACT_VERSION = "1.1.0"
+CONTRACT_VERSION = "1.2.0"
 
 ToolName = Literal["send_email", "read_file", "http_request", "make_payment"]
 Outcome = Literal["ALLOW", "DENY", "STEP_UP"]

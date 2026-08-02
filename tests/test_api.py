@@ -56,7 +56,7 @@ def test_health(client: TestClient) -> None:
 
 
 def test_contract_version(client: TestClient) -> None:
-    assert client.get("/contract").json() == {"version": "1.1.0"}
+    assert client.get("/contract").json() == {"version": "1.2.0"}
 
 
 def test_root_serves_console_ui(client: TestClient) -> None:
@@ -147,6 +147,13 @@ def test_demo_injected_yields_two_blocks(client: TestClient) -> None:
     assert [step["decision"]["outcome"] for step in body] == [
         "ALLOW", "STEP_UP", "DENY"
     ]
+    assert client.get("/log/verify").json()["ok"]
+
+
+def test_demo_overreach_blocks_the_payment(client: TestClient) -> None:
+    body = client.post("/demo/overreach").json()
+    assert [step["decision"]["outcome"] for step in body] == ["ALLOW", "DENY"]
+    assert body[1]["decision"]["reason_code"] == "amount_exceeds_limit"
     assert client.get("/log/verify").json()["ok"]
 
 

@@ -1,4 +1,4 @@
-# Aegis data contract — `v1.1.0` (FROZEN)
+# Aegis data contract — `v1.2.0` (FROZEN)
 
 The console is built against this document. Everything here is defined in
 `aegis/models.py` and nowhere else — do not redefine these types locally.
@@ -6,8 +6,9 @@ The console is built against this document. Everything here is defined in
 `GET /contract` returns the version. If that number changes, a shape changed;
 it will be announced first, and it will be additive.
 
-**1.1.0 adds `GET /receipt/{seq}`.** Nothing existing changed — every shape from
-1.0.0 is byte-identical, so no console code needs touching.
+**1.1.0 added `GET /receipt/{seq}`. 1.2.0 adds `POST /demo/overreach`.** Both are
+new endpoints; every shape from 1.0.0 is still byte-identical, so no console code
+needs touching for either.
 
 ## Running the API
 
@@ -23,7 +24,7 @@ AEGIS_DEV_CORS=1 uvicorn aegis.main:app --reload --port 8000
 | Method + path | Purpose | Returns |
 |---|---|---|
 | `GET /health` | liveness | `{"status": "ok"}` |
-| `GET /contract` | contract version | `{"version": "1.1.0"}` |
+| `GET /contract` | contract version | `{"version": "1.2.0"}` |
 | `GET /receipt/{seq}` | human-readable prose for one entry | `{"seq": int, "text": str}` |
 | `GET /log` | full chain, **newest first** | `LogEntry[]` |
 | `GET /log/verify` | verify the whole chain | `VerifyResult` |
@@ -35,6 +36,7 @@ Also live:
 | `POST /act` | evaluate + log one action | `ActResponse` |
 | `POST /demo/benign` | scripted benign scenario | `ActResponse[]` |
 | `POST /demo/injected` | scripted injected scenario | `ActResponse[]` |
+| `POST /demo/overreach` | scripted over-reach scenario | `ActResponse[]` |
 | `POST /debug/tamper` | edit a past entry — demo only, env-gated | `{"ok": true}` |
 
 ### `GET /receipt/{seq}`
@@ -123,7 +125,8 @@ types, and lengths never changed, only the values became real.
 **One consequence:** a freshly started server has an empty chain, so `/log`
 returns `[]` until something populates it. `POST /demo/injected` gives you three
 rows covering every state you need to style — `ALLOW`, `STEP_UP`, and `DENY` —
-and `POST /demo/benign` gives you a single `ALLOW`.
+`POST /demo/benign` gives you a single `ALLOW`, and `POST /demo/overreach` gives
+you `ALLOW` then `DENY`.
 
 `tests/fixtures/mock_log.json` is still in the repo as a shape reference if you
 want to develop offline, but no endpoint reads it.

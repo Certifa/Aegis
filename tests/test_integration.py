@@ -17,7 +17,7 @@ from typing import Any
 
 import pytest
 
-from aegis.demo import BENIGN_SCRIPT, INJECTED_SCRIPT, replay
+from aegis.demo import BENIGN_SCRIPT, INJECTED_SCRIPT, OVERREACH_SCRIPT, replay
 from aegis.interceptor import Interceptor
 from aegis.keys import keypair_from_seed
 from aegis.models import Policy, ToolName, VerifyResult
@@ -130,6 +130,37 @@ async def test_the_injected_run_is_deterministic(
         ]
 
     assert await run() == await run()
+
+
+# -- over-reach: refused without anyone being fooled -----------------------------
+
+
+async def test_overreach_is_blocked_without_any_injection(
+    interceptor: Interceptor, log: ProvenanceLog
+) -> None:
+    """The agent is not compromised. It does exactly what it was asked, and is
+    refused because it holds more authority than it should."""
+    read, pay = await replay(OVERREACH_SCRIPT, interceptor)
+
+    assert read.decision.outcome == "ALLOW"
+    assert pay.decision.outcome == "DENY"
+    assert pay.decision.reason_code == "amount_exceeds_limit"
+    assert pay.result is None, "the payment must not have executed"
+
+    assert log.verify() == VerifyResult(ok=True, count=2, broken_at=None, why=None)
+
+
+async def test_the_overreach_document_contains_nothing_adversarial(
+    interceptor: Interceptor,
+) -> None:
+    """If this ever fails, the over-reach story has quietly become an injection
+    story and 'the agent was not compromised' is no longer true."""
+    read, _ = await replay(OVERREACH_SCRIPT, interceptor)
+
+    assert read.result is not None
+    document = read.result.detail.lower()
+    for marker in ("ignore previous", "system note", "attacker@", "<!--", "do not mention"):
+        assert marker not in document, f"the clean invoice contains {marker!r}"
 
 
 # -- the climax -----------------------------------------------------------------
