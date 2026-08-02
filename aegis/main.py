@@ -18,6 +18,8 @@ from typing import Annotated, cast
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 
 from aegis.demo import BENIGN_SCRIPT, INJECTED_SCRIPT, ScriptedStep, replay
@@ -69,6 +71,14 @@ if os.getenv("AEGIS_DEV_CORS") == "1":
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+
+
+@app.get("/")
+def read_root() -> FileResponse:
+    return FileResponse(_STATIC_DIR / "index.html")
 
 
 # app.state is untyped, so each accessor casts once, here, rather than every
