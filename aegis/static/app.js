@@ -1,4 +1,4 @@
-// Aegis Modern SaaS Security Console Controller
+// Aegis Modern SaaS Security Console Controller (Vercel / Linear Aesthetic)
 
 state = {
   logEntries: [],
@@ -188,48 +188,51 @@ function inspectRow(seq) {
   body.innerHTML = `
     ${isTampered ? `
       <div class="drawer-section" style="border-color:var(--signal-deny-border); background-color:var(--signal-deny-bg);">
-        <span class="drawer-label" style="color:var(--signal-deny);">CRITICAL TAMPER ANOMALY DETECTED</span>
-        <span class="drawer-val" style="color:var(--signal-deny); font-weight:600;">
-          Provenance Link Broken: ${state.verifyResult.why}
+        <span class="drawer-label" style="color:var(--signal-deny);">Critical Tamper Anomaly Detected</span>
+        <span class="drawer-val mono" style="color:var(--signal-deny); font-weight:600;">
+          Reason: ${state.verifyResult.why}
         </span>
+        <p style="font-size:11px; color:var(--text-primary); margin-top:4px;">
+          ${getTamperExplanation(state.verifyResult.why)}
+        </p>
       </div>
     ` : ''}
 
     <div class="drawer-section">
-      <span class="drawer-label">PLAIN-ENGLISH RECEIPT</span>
+      <span class="drawer-label">Plain-English Receipt</span>
       <span class="drawer-val" style="font-weight:600; color: ${entry.decision.outcome === 'ALLOW' ? 'var(--signal-allow)' : entry.decision.outcome === 'STEP_UP' ? 'var(--signal-stepup)' : 'var(--signal-deny)'};">
         ${plainText}
       </span>
     </div>
 
     <div class="drawer-section">
-      <span class="drawer-label">PRINCIPAL &amp; GUARDED AGENT</span>
+      <span class="drawer-label">Principal &amp; Guarded Agent</span>
       <span class="drawer-val"><strong>${entry.request.principal}</strong> / <span class="mono">${entry.request.agent}</span></span>
     </div>
 
     <div class="drawer-section">
-      <span class="drawer-label">TOOL &amp; POLICY REASON</span>
+      <span class="drawer-label">Tool &amp; Policy Reason</span>
       <span class="drawer-val"><strong>${entry.request.tool}</strong> (<span class="mono">code: ${entry.decision.reason_code}</span>)</span>
       ${entry.decision.matched_rule ? `<span class="drawer-val mono" style="color:var(--text-muted); font-size:11px;">rule: ${entry.decision.matched_rule}</span>` : ''}
     </div>
 
     <div class="drawer-section">
-      <span class="drawer-label">ACTION ARGUMENTS</span>
+      <span class="drawer-label">Action Arguments Payload (JSON)</span>
       <pre class="code-box-json mono">${JSON.stringify(entry.request.args, null, 2)}</pre>
     </div>
 
     <div class="drawer-section">
-      <span class="drawer-label">SHA-256 ENTRY HASH</span>
+      <span class="drawer-label">SHA-256 Entry Hash</span>
       <span class="drawer-val mono" style="font-size:11px; word-break:break-all;">${entry.entry_hash}</span>
     </div>
 
     <div class="drawer-section">
-      <span class="drawer-label">PREVIOUS ENTRY HASH</span>
+      <span class="drawer-label">Previous Entry Hash (Link)</span>
       <span class="drawer-val mono" style="font-size:11px; word-break:break-all;">${entry.prev_hash === "" ? "(Root Genesis)" : entry.prev_hash}</span>
     </div>
 
     <div class="drawer-section">
-      <span class="drawer-label">ED25519 SIGNATURE</span>
+      <span class="drawer-label">Ed25519 Signature</span>
       <span class="drawer-val mono" style="font-size:11px; word-break:break-all;">${entry.signature}</span>
     </div>
   `;
@@ -240,6 +243,17 @@ function inspectRow(seq) {
 function closeInspectPanel() {
   state.selectedSeq = null;
   document.getElementById('inspectPanel').classList.add('hidden');
+}
+
+function getTamperExplanation(why) {
+  if (why === 'chain_link') {
+    return "Previous entry hash link broken. An entry was inserted, reordered, or deleted from the provenance chain.";
+  } else if (why === 'content_altered') {
+    return "Entry payload modified. Recomputed SHA-256 hash does not match recorded entry_hash.";
+  } else if (why === 'bad_signature') {
+    return "Ed25519 signature verification failed. Cryptographic signature does not match expected key.";
+  }
+  return "Cryptographic validation failed on this entry.";
 }
 
 async function loadContractVersion() {
@@ -328,7 +342,7 @@ async function submitCustomAction() {
   try {
     args = JSON.parse(document.getElementById('actArgsJson').value);
   } catch (e) {
-    alert('Invalid JSON in arguments field!');
+    alert('Invalid JSON in arguments payload!');
     return;
   }
 
@@ -436,19 +450,19 @@ function renderIntegrityBanner() {
   const { ok, count, broken_at, why } = state.verifyResult;
 
   if (ok) {
-    banner.className = 'banner-integrity intact';
+    banner.className = 'banner-card intact';
     iconIntact.classList.remove('hidden');
     iconAlert.classList.add('hidden');
     title.textContent = 'Provenance Chain Verified';
     cryptoChip.textContent = `SHA-256 Chain · Ed25519 Signed (${count} Verified)`;
     desc.textContent = `All ${count} log entries cryptographically verified against tamper-evident signatures. Zero anomalies detected.`;
   } else {
-    banner.className = 'banner-integrity broken';
+    banner.className = 'banner-card broken';
     iconIntact.classList.add('hidden');
     iconAlert.classList.remove('hidden');
     title.textContent = `Critical: Log Tampering Detected at Entry #${broken_at}`;
-    cryptoChip.textContent = `Corrupted: ${why.toUpperCase()}`;
-    desc.textContent = `Verification failed on sequence #${broken_at}. Reason code: '${why}'. Chain link or cryptographic signature validation failed!`;
+    cryptoChip.textContent = `Corrupted: ${why}`;
+    desc.textContent = `Verification failed on sequence #${broken_at}: ${getTamperExplanation(why)}`;
   }
 }
 
@@ -495,6 +509,7 @@ function renderLogStream() {
 
     const tsFormatted = new Date(entry.ts).toISOString().replace('T', ' ').substring(0, 19);
     const prose = state.receiptCache[entry.seq] || entry.decision.reason_code;
+    const hashFragment = entry.entry_hash ? `${entry.entry_hash.substring(0, 8)}...${entry.entry_hash.substring(56)}` : '0000...0000';
 
     row.onclick = () => inspectRow(entry.seq);
 
@@ -507,9 +522,15 @@ function renderLogStream() {
       <td class="prose-cell">
         <span class="prose-main">${prose}</span>
         <span class="prose-reason mono">(${entry.decision.reason_code})</span>
+        ${isTamperedTarget ? `
+          <div style="color:var(--signal-deny); font-weight:600; font-size:11px; margin-top:4px;">
+            Critical Anomaly: ${getTamperExplanation(state.verifyResult.why)}
+          </div>
+        ` : ''}
       </td>
+      <td class="ts-cell mono" style="font-size:11px;">${hashFragment}</td>
       <td style="text-align: right;">
-        <button class="btn-ghost" style="padding: 2px 8px; font-size: 11px;" onclick="event.stopPropagation(); inspectRow(${entry.seq})">Inspect</button>
+        <button class="btn-pill" style="padding: 2px 8px; font-size: 11px;" onclick="event.stopPropagation(); inspectRow(${entry.seq})">Inspect</button>
       </td>
     `;
 

@@ -3,24 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aegis — Policy &amp; Provenance Gateway Console</title>
+  <title>Aegis — Policy &amp; Provenance Gateway</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <!-- Styles -->
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <div id="app" class="app-shell">
     
-    <!-- Header Navigation -->
+    <!-- Top Navigation Bar -->
     <header class="top-nav">
       <div class="nav-brand">
         <div class="brand-logo">
-          <svg width="22" height="24" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="22" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 0L0 5.33333V13.3333C0 20.72 5.12 27.56 12 29.3333C18.88 27.56 24 20.72 24 13.3333V5.33333L12 0Z" fill="url(#brand-grad)"/>
             <path d="M12 3.5L3.5 7.2V13.5C3.5 18.8 7.2 23.6 12 25C16.8 23.6 20.5 18.8 20.5 13.5V7.2L12 3.5Z" fill="#09090B"/>
             <path d="M10 16.5L7 13.5L8.41 12.09L10 13.67L15.59 8.08L17 9.5L10 16.5Z" fill="#2DD4BF"/>
@@ -32,88 +31,91 @@
             </defs>
           </svg>
         </div>
-        <div class="brand-title-wrap">
-          <span class="brand-name">Aegis</span>
+        <div class="brand-text">
+          <span class="brand-title">Aegis</span>
           <span class="brand-sub">Policy &amp; Provenance Gateway</span>
         </div>
       </div>
 
       <div class="nav-right">
-        <div class="meta-tag">
-          <span class="tag-label">CONTRACT</span>
-          <span class="tag-val mono" id="contractVersion">v1.0.0</span>
+        <div class="meta-pill">
+          <span class="meta-label">Contract</span>
+          <span class="meta-val mono" id="contractVersion">v1.0.0</span>
         </div>
-        <button id="btnToggleSync" class="btn-sync active" title="Toggle Auto-Sync Polling">
-          <span class="sync-indicator"></span>
+        <button id="btnToggleSync" class="btn-pill sync-on" title="Toggle Auto-Sync Polling">
+          <span class="sync-dot"></span>
           <span>Auto-Sync <strong id="syncStateText">ON</strong></span>
         </button>
-        <button id="btnViewPolicyHeader" class="btn-ghost">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <button id="btnViewPolicyHeader" class="btn-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Policy Spec</span>
         </button>
-        <div class="status-indicator online">
+        <div class="status-pill online">
           <span class="status-dot"></span>
           <span>System Online</span>
         </div>
       </div>
     </header>
 
-    <!-- Main Workspace Layout -->
-    <main class="main-layout">
+    <!-- Main Content Workspace -->
+    <main class="main-content">
       
-      <!-- Integrity Hero Status Banner -->
-      <div class="banner-integrity intact" id="integrityBanner">
-        <div class="banner-content">
-          <div class="banner-icon-wrapper" id="bannerIconWrapper">
-            <svg id="iconIntact" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            <svg id="iconAlert" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <!-- Verification Hero Card -->
+      <section class="banner-card intact" id="integrityBanner">
+        <div class="banner-left">
+          <div class="banner-icon-box" id="bannerIconWrapper">
+            <svg id="iconIntact" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <svg id="iconAlert" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
-          <div class="banner-text-group">
-            <div class="banner-header">
+          <div class="banner-text">
+            <div class="banner-title-row">
               <h2 id="integrityTitle">Provenance Chain Verified</h2>
-              <span class="chip-crypto mono" id="cryptoChip">SHA-256 Chain · Ed25519 Signed</span>
+              <span class="chip-subtle mono" id="cryptoChip">SHA-256 Chain · Ed25519 Signed</span>
             </div>
             <p id="integrityDesc" class="banner-desc">All entries cryptographically verified against tamper-evident signatures. Zero anomalies detected.</p>
           </div>
         </div>
-        <button id="btnVerify" class="btn-primary-action">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-          <span>Verify Chain</span>
-        </button>
-      </div>
 
-      <!-- Action Toolbar -->
-      <div class="toolbar-card">
-        <div class="toolbar-section">
-          <span class="section-label">DEMO SCENARIOS</span>
-          <div class="button-row">
-            <button id="btnBenign" class="btn-secondary btn-benign">
+        <div class="banner-right">
+          <button id="btnVerify" class="btn-primary-teal">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Run Chain Verification</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Action & Scenario Controls Card -->
+      <div class="controls-card">
+        <div class="controls-group">
+          <span class="group-label">Demo Scenarios</span>
+          <div class="btn-grid">
+            <button id="btnBenign" class="btn-card btn-benign">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               <span>Run Benign Demo</span>
             </button>
-            <button id="btnInjected" class="btn-secondary btn-injected">
+            <button id="btnInjected" class="btn-card btn-injected">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               <span>Run Injected Demo</span>
             </button>
-            <button id="btnCustomAct" class="btn-secondary">
+            <button id="btnCustomAct" class="btn-card">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span>Simulate Action</span>
             </button>
           </div>
         </div>
 
-        <div class="toolbar-section toolbar-tamper">
-          <span class="section-label">TAMPER TESTING</span>
-          <div class="button-row">
-            <select id="tamperSeqSelect" class="form-select mono">
+        <div class="controls-group">
+          <span class="group-label">Tamper Testing</span>
+          <div class="btn-grid">
+            <select id="tamperSeqSelect" class="form-input mono">
               <option value="">Target Entry...</option>
             </select>
-            <select id="tamperModeSelect" class="form-select">
+            <select id="tamperModeSelect" class="form-input">
               <option value="content_altered">Modify Content</option>
               <option value="chain_link">Break Prev Hash Link</option>
               <option value="bad_signature">Invalidate Signature</option>
             </select>
-            <button id="btnInjectTamper" class="btn-danger-outline">
+            <button id="btnInjectTamper" class="btn-danger-subtle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <span>Tamper Entry</span>
             </button>
@@ -121,13 +123,13 @@
         </div>
       </div>
 
-      <!-- Filter Controls & Search -->
-      <div class="filter-row">
+      <!-- Filter Pills & Search Field Bar -->
+      <div class="filter-bar">
         <div class="pill-group">
-          <button class="pill active" data-filter-outcome="ALL">All Entries (<span id="countAll">0</span>)</button>
-          <button class="pill pill-allow" data-filter-outcome="ALLOW">ALLOW (<span id="countAllow">0</span>)</button>
-          <button class="pill pill-stepup" data-filter-outcome="STEP_UP">STEP_UP (<span id="countStepUp">0</span>)</button>
-          <button class="pill pill-deny" data-filter-outcome="DENY">DENY (<span id="countDeny">0</span>)</button>
+          <button class="pill active" data-filter-outcome="ALL">All Entries (<span id="countAll" class="mono">0</span>)</button>
+          <button class="pill pill-allow" data-filter-outcome="ALLOW">ALLOW (<span id="countAllow" class="mono">0</span>)</button>
+          <button class="pill pill-stepup" data-filter-outcome="STEP_UP">STEP_UP (<span id="countStepUp" class="mono">0</span>)</button>
+          <button class="pill pill-deny" data-filter-outcome="DENY">DENY (<span id="countDeny" class="mono">0</span>)</button>
         </div>
 
         <div class="search-field">
@@ -136,30 +138,31 @@
         </div>
       </div>
 
-      <!-- Audit Log View Workspace -->
-      <div class="view-workspace">
+      <!-- Workspace Area: Table & Inspector Drawer -->
+      <div class="workspace-area">
         
-        <!-- Datadog Log Table -->
+        <!-- Table Card -->
         <div class="table-card">
           <table class="audit-table">
             <thead>
               <tr>
-                <th style="width: 70px;">SEQ</th>
-                <th style="width: 170px;">TIMESTAMP (UTC)</th>
-                <th style="width: 100px;">OUTCOME</th>
-                <th style="width: 130px;">TOOL</th>
-                <th style="width: 180px;">PRINCIPAL / AGENT</th>
-                <th>ENFORCEMENT REASON &amp; PROSE RECEIPT</th>
-                <th style="width: 90px; text-align: right;">ACTION</th>
+                <th style="width: 65px;">Seq</th>
+                <th style="width: 175px;">Timestamp (UTC)</th>
+                <th style="width: 110px;">Outcome</th>
+                <th style="width: 130px;">Tool</th>
+                <th style="width: 180px;">Principal / Agent</th>
+                <th>Enforcement Reason &amp; Prose Receipt</th>
+                <th style="width: 110px;">Hash Fragment</th>
+                <th style="width: 80px; text-align: right;">Action</th>
               </tr>
             </thead>
             <tbody id="logTableBody">
-              <!-- Dynamic Rows -->
+              <!-- Dynamic Table Rows -->
             </tbody>
           </table>
 
-          <!-- Styled Empty State -->
-          <div class="empty-container hidden" id="emptyState">
+          <!-- Empty State -->
+          <div class="empty-card hidden" id="emptyState">
             <div class="empty-icon-box">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             </div>
@@ -172,10 +175,10 @@
         <aside class="drawer-panel hidden" id="inspectPanel">
           <div class="drawer-header">
             <h3>Entry Details <span class="mono">#<span id="inspectSeqNum">0</span></span></h3>
-            <button class="btn-icon-close" id="btnCloseInspect">&times;</button>
+            <button class="btn-close" id="btnCloseInspect">&times;</button>
           </div>
           <div class="drawer-body" id="inspectPanelBody">
-            <!-- Dynamic Drawer Details -->
+            <!-- Dynamic Inspection Details -->
           </div>
         </aside>
 
@@ -188,14 +191,14 @@
       <div class="modal-card modal-lg">
         <div class="modal-header">
           <h3>Active Policy Specification (<span class="mono">inbox-assistant.yaml</span>)</h3>
-          <button class="btn-icon-close" id="btnClosePolicyModal">&times;</button>
+          <button class="btn-close" id="btnClosePolicyModal">&times;</button>
         </div>
         <div class="modal-body">
           <p class="modal-note">Deterministic rules evaluated in exact order before any tool execution:</p>
           <pre class="code-box-yaml mono" id="policyYamlContent">Loading policy YAML...</pre>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" id="btnDismissPolicy">Close</button>
+          <button type="button" class="btn-card" id="btnDismissPolicy">Close</button>
         </div>
       </div>
     </div>
@@ -205,7 +208,7 @@
       <div class="modal-card">
         <div class="modal-header">
           <h3>Simulate Tool Action</h3>
-          <button class="btn-icon-close" id="btnCloseModal">&times;</button>
+          <button class="btn-close" id="btnCloseModal">&times;</button>
         </div>
         <form id="actForm" class="modal-body">
           <div class="form-group">
@@ -218,7 +221,7 @@
           </div>
           <div class="form-group">
             <label for="actTool">Tool Name</label>
-            <select id="actTool" class="form-select">
+            <select id="actTool" class="form-input">
               <option value="send_email">send_email</option>
               <option value="read_file">read_file</option>
               <option value="http_request">http_request</option>
@@ -227,11 +230,11 @@
           </div>
           <div class="form-group">
             <label for="actArgsJson">Arguments (JSON)</label>
-            <textarea id="actArgsJson" class="form-textarea mono" rows="4">{"to": "bob@corp", "subject": "Q3 Financials", "body": "Report attached."}</textarea>
+            <textarea id="actArgsJson" class="form-input mono" rows="4">{"to": "bob@corp", "subject": "Q3 Financials", "body": "Report attached."}</textarea>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn-secondary" id="btnCancelAct">Cancel</button>
-            <button type="submit" class="btn-primary-action">Submit to Gateway</button>
+            <button type="button" class="btn-card" id="btnCancelAct">Cancel</button>
+            <button type="submit" class="btn-primary-teal">Submit to Gateway</button>
           </div>
         </form>
       </div>
