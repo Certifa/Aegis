@@ -14,7 +14,7 @@
 
   /* Typography */
   --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
+  --text-secondary: #a1a1aa; /* text-gray-400 for headers & labels */
   --text-muted: #71717a;
 
   /* Professional Muted Signal Colors */
@@ -219,7 +219,7 @@ body {
   gap: 20px;
 }
 
-/* Integrity Banner Card */
+/* Integrity Banner Card — Refined 3px Accent Border */
 .banner-integrity {
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -233,11 +233,11 @@ body {
 }
 
 .banner-integrity.intact {
-  border-left: 4px solid var(--signal-allow);
+  border-left: 3px solid var(--signal-allow);
 }
 
 .banner-integrity.broken {
-  border-left: 4px solid var(--signal-deny);
+  border-left: 3px solid var(--signal-deny);
   background-color: rgba(244, 63, 94, 0.06);
   border-color: var(--signal-deny-border);
 }
@@ -319,7 +319,7 @@ body {
   background-color: #5eead4;
 }
 
-/* Toolbar Card */
+/* Toolbar Card — Micro-Spacing Gap (32px / gap-8) */
 .toolbar-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -329,7 +329,7 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 32px; /* Increased horizontal gap between control groups */
 }
 
 .toolbar-section {
@@ -407,13 +407,18 @@ body {
   font-family: var(--font-sans);
   outline: none;
   transition: border-color 0.2s ease;
+  height: 34px;
+}
+
+.form-textarea {
+  height: auto;
 }
 
 .form-select:focus, .form-input:focus, .form-textarea:focus {
   border-color: var(--accent-teal);
 }
 
-/* Filter Controls Row */
+/* Filter Controls Row — Perfect Axis Alignment */
 .filter-row {
   display: flex;
   align-items: center;
@@ -429,7 +434,10 @@ body {
 }
 
 .pill {
-  padding: 6px 14px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 20px;
@@ -460,7 +468,8 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  height: 34px;
+  padding: 0 12px;
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -494,7 +503,7 @@ body {
   flex-direction: column;
 }
 
-/* Audit Table */
+/* Audit Table — High-Contrast Lightened Headers (text-gray-400) */
 .audit-table {
   width: 100%;
   border-collapse: collapse;
@@ -503,10 +512,11 @@ body {
 
 .audit-table th {
   background-color: var(--bg-surface);
-  color: var(--text-muted);
+  color: var(--text-secondary); /* Lightened to medium gray (#a1a1aa / text-gray-400) */
   font-size: 11px;
   font-weight: 600;
-  padding: 10px 16px;
+  letter-spacing: 0.5px;
+  padding: 13px 16px; /* Increased vertical padding for breathing room */
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -527,7 +537,7 @@ body {
 
 .audit-table tbody tr.row-tampered {
   background-color: rgba(244, 63, 94, 0.08) !important;
-  border-left: 4px solid var(--signal-deny);
+  border-left: 3px solid var(--signal-deny);
 }
 
 .seq-cell { color: var(--text-muted); font-weight: 600; }
@@ -557,19 +567,20 @@ body {
 .prose-main { font-weight: 500; }
 .prose-reason { color: var(--text-muted); font-size: 11px; margin-left: 6px; }
 
-/* Empty State Container */
+/* Empty State Container — Refined & Scaled Down Icon */
 .empty-container {
-  padding: 64px 32px;
+  padding: 56px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  gap: 12px;
 }
 
 .empty-icon-box {
-  width: 56px;
-  height: 56px;
+  width: 42px; /* Scaled down ~25% from 56px */
+  height: 42px;
   border-radius: 50%;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
@@ -577,20 +588,20 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
 
 .empty-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 6px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
 }
 
 .empty-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
-  max-width: 440px;
+  max-width: 420px;
 }
 
 /* Right Side Drawer Panel */
