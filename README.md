@@ -248,15 +248,16 @@ Being explicit about the edges, because a hackathon demo is not a deployment:
 |---|---|---|
 | 1 | Data contracts + mock `/log` for the console | ✅ done |
 | 2 | Policy engine, canonical JSON, truth-table tests | ✅ done |
-| 3 | Provenance log — hash chain, Ed25519, tamper tests | 🔨 in progress |
-| 4 | Interceptor, tool stubs, routes, deterministic demo replay | ⬜ |
-| 5 | Live agent, injection scenario end-to-end, explainer | ⬜ |
+| 3 | Provenance log — hash chain, Ed25519, tamper tests | ✅ done |
+| 4 | Interceptor, tool stubs, routes, deterministic demo replay | ✅ done |
+| 5 | Live agent, explainer | ⬜ |
 | — | Console UI | 🔨 in progress |
 
-45 tests passing; `ruff` and `mypy --strict` clean.
+109 tests passing; `ruff` and `mypy --strict` clean.
 
-Endpoints marked above that belong to unfinished phases are specified and
-contract-frozen, but not yet live.
+Every endpoint above is live. Both scenarios run end to end today over the
+deterministic replay path; Phase 5 adds a real LLM agent on top of the same
+boundary, so the enforcement outcome is identical either way.
 
 ## Layout
 
