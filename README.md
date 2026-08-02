@@ -280,6 +280,3 @@ tests/
 
 - **Mike** — boundary and crypto: policy engine, provenance log, interceptor
 - **Jayden** — surface and delivery: console, deployment
-
-Working agreement in [CLAUDE.md](CLAUDE.md); data contract in
-[CONTRACT.md](CONTRACT.md); full specification in `aegis-build-spec.pdf`.
