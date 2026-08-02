@@ -1,9 +1,10 @@
 """FastAPI surface for Aegis.
 
 Route paths and response shapes were fixed in Phase 1 so the console could be
-built against them before the engine existed. Phase 4 swaps the data source
-from a mock fixture to the real hash-chained log without changing a single
-response model — CONTRACT_VERSION is still 1.0.0.
+built against them before the engine existed, and that promise held: the data
+source moved from a mock fixture to the real hash-chained log without changing a
+single response model. Every version bump since has added endpoints only, so
+nothing built against 1.0.0 has ever needed touching.
 
 Spec: aegis-build-spec.pdf section 7.
 """
