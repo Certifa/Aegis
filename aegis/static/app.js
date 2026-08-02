@@ -444,22 +444,16 @@ function renderIntegrityBanner() {
   const title = document.getElementById('integrityTitle');
   const desc = document.getElementById('integrityDesc');
   const cryptoChip = document.getElementById('cryptoChip');
-  const iconIntact = document.getElementById('iconIntact');
-  const iconAlert = document.getElementById('iconAlert');
 
   const { ok, count, broken_at, why } = state.verifyResult;
 
   if (ok) {
     banner.className = 'banner-card intact';
-    iconIntact.classList.remove('hidden');
-    iconAlert.classList.add('hidden');
     title.textContent = 'Provenance Chain Verified';
     cryptoChip.textContent = `SHA-256 Chain · Ed25519 Signed (${count} Verified)`;
     desc.textContent = `All ${count} log entries cryptographically verified against tamper-evident signatures. Zero anomalies detected.`;
   } else {
     banner.className = 'banner-card broken';
-    iconIntact.classList.add('hidden');
-    iconAlert.classList.remove('hidden');
     title.textContent = `Critical: Log Tampering Detected at Entry #${broken_at}`;
     cryptoChip.textContent = `Corrupted: ${why}`;
     desc.textContent = `Verification failed on sequence #${broken_at}: ${getTamperExplanation(why)}`;

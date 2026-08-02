@@ -16,7 +16,7 @@
   --text-secondary: #a3a3a3; /* zinc-400 (text-gray-400) */
   --text-muted: #737373;     /* zinc-500 */
 
-  /* Muted Professional Signals */
+  /* Semantic-Only Signals (Color Reserved Strictly for Outcomes) */
   --signal-allow: #10b981;
   --signal-allow-bg: rgba(16, 185, 129, 0.1);
   --signal-allow-border: rgba(16, 185, 129, 0.25);
@@ -30,7 +30,6 @@
   --signal-deny-border: rgba(244, 63, 94, 0.25);
 
   --accent-teal: #2dd4bf;
-  --accent-purple: #a855f7;
 
   /* Typography Stack */
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -105,11 +104,6 @@ button, input, select, textarea, a, tr, .pill, .banner-card, .btn-card, .btn-pil
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.brand-logo {
-  display: flex;
-  align-items: center;
 }
 
 .brand-text {
@@ -259,24 +253,6 @@ button, input, select, textarea, a, tr, .pill, .banner-card, .btn-card, .btn-pil
   gap: 16px;
 }
 
-.banner-icon-box {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--signal-allow-bg);
-  border: 1px solid var(--signal-allow-border);
-  color: var(--signal-allow);
-}
-
-.banner-card.broken .banner-icon-box {
-  background-color: var(--signal-deny-bg);
-  border-color: var(--signal-deny-border);
-  color: var(--signal-deny);
-}
-
 .banner-text {
   display: flex;
   flex-direction: column;
@@ -364,7 +340,6 @@ button, input, select, textarea, a, tr, .pill, .banner-card, .btn-card, .btn-pil
   gap: 8px;
 }
 
-/* Secondary Button Hover Micro-Interactions (hover:bg-gray-800 / hover:bg-white/5) */
 .btn-card {
   display: inline-flex;
   align-items: center;
@@ -588,7 +563,8 @@ textarea.form-input {
 .badge-STEP_UP { background-color: var(--signal-stepup-bg); color: var(--signal-stepup); border: 1px solid var(--signal-stepup-border); }
 .badge-DENY { background-color: var(--signal-deny-bg); color: var(--signal-deny); border: 1px solid var(--signal-deny-border); }
 
-.tool-cell { color: var(--accent-purple); font-weight: 600; }
+/* Tool Cell: Standard Primary Monospace Text (NO Decorative Purple) */
+.tool-cell { color: var(--text-primary); font-weight: 600; }
 .principal-cell { color: var(--text-primary); font-weight: 500; }
 
 .prose-cell {
@@ -608,19 +584,6 @@ textarea.form-input {
   justify-content: center;
   text-align: center;
   gap: 8px;
-}
-
-.empty-icon-box {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  margin-bottom: 4px;
 }
 
 .empty-title {

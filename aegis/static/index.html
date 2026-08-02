@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aegis — Policy &amp; Provenance Gateway</title>
   
-  <!-- Fonts -->
+  <!-- Fonts: Inter for UI, JetBrains Mono for Technical Data -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -18,19 +18,6 @@
     <!-- Top Navigation Bar -->
     <header class="top-nav">
       <div class="nav-brand">
-        <div class="brand-logo">
-          <svg width="20" height="22" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 0L0 5.33333V13.3333C0 20.72 5.12 27.56 12 29.3333C18.88 27.56 24 20.72 24 13.3333V5.33333L12 0Z" fill="url(#brand-grad)"/>
-            <path d="M12 3.5L3.5 7.2V13.5C3.5 18.8 7.2 23.6 12 25C16.8 23.6 20.5 18.8 20.5 13.5V7.2L12 3.5Z" fill="#09090B"/>
-            <path d="M10 16.5L7 13.5L8.41 12.09L10 13.67L15.59 8.08L17 9.5L10 16.5Z" fill="#2DD4BF"/>
-            <defs>
-              <linearGradient id="brand-grad" x1="0" y1="0" x2="24" y2="28" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#2DD4BF"/>
-                <stop offset="1" stop-color="#818CF8"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
         <div class="brand-text">
           <span class="brand-title">Aegis</span>
           <span class="brand-sub">Policy &amp; Provenance Gateway</span>
@@ -47,7 +34,6 @@
           <span>Auto-Sync <strong id="syncStateText">ON</strong></span>
         </button>
         <button id="btnViewPolicyHeader" class="btn-pill">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Policy Spec</span>
         </button>
         <div class="status-pill online">
@@ -60,13 +46,9 @@
     <!-- Main Content Workspace -->
     <main class="main-content">
       
-      <!-- Verification Hero Card -->
+      <!-- Verification Centerpiece Banner (No Icons, No Bracket Symbols) -->
       <section class="banner-card intact" id="integrityBanner">
         <div class="banner-left">
-          <div class="banner-icon-box" id="bannerIconWrapper">
-            <svg id="iconIntact" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            <svg id="iconAlert" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
           <div class="banner-text">
             <div class="banner-title-row">
               <h2 id="integrityTitle">Provenance Chain Verified</h2>
@@ -78,7 +60,6 @@
 
         <div class="banner-right">
           <button id="btnVerify" class="btn-primary-teal">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
             <span>Run Chain Verification</span>
           </button>
         </div>
@@ -90,15 +71,12 @@
           <span class="group-label">Demo Scenarios</span>
           <div class="btn-grid">
             <button id="btnBenign" class="btn-card btn-benign">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               <span>Run Benign Demo</span>
             </button>
             <button id="btnInjected" class="btn-card btn-injected">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               <span>Run Injected Demo</span>
             </button>
             <button id="btnCustomAct" class="btn-card">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               <span>Simulate Action</span>
             </button>
           </div>
@@ -116,14 +94,13 @@
               <option value="bad_signature">Invalidate Signature</option>
             </select>
             <button id="btnInjectTamper" class="btn-danger-subtle">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <span>Tamper Entry</span>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Filter Pills & Search Field Bar -->
+      <!-- Filter Pills & Search Field Bar (Plain Text Labels Alone) -->
       <div class="filter-bar">
         <div class="pill-group">
           <button class="pill active" data-filter-outcome="ALL">All Entries (<span id="countAll" class="mono">0</span>)</button>
@@ -133,15 +110,14 @@
         </div>
 
         <div class="search-field">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="searchInput" placeholder="Search tool, principal, args, reason...">
         </div>
       </div>
 
-      <!-- Workspace Area: Table & Inspector Drawer -->
+      <!-- Workspace Area: Audit Table & Inspector Drawer -->
       <div class="workspace-area">
         
-        <!-- Table Card -->
+        <!-- Audit Table Card -->
         <div class="table-card">
           <table class="audit-table">
             <thead>
@@ -163,9 +139,6 @@
 
           <!-- Empty State -->
           <div class="empty-card hidden" id="emptyState">
-            <div class="empty-icon-box">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
             <h4 class="empty-title">No provenance records in chain</h4>
             <p class="empty-subtitle">Click "Run Benign Demo" or "Run Injected Demo" above to execute tool calls and populate the audit log.</p>
           </div>
