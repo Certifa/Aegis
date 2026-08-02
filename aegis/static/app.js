@@ -1,14 +1,15 @@
-// Aegis Console UI Interactive Controller (Industrial Anchor)
+// Aegis Modern SaaS Security Console Controller
 
 state = {
   logEntries: [],
-  receiptCache: {}, // Cache plain-English receipt texts by seq
+  receiptCache: {},
   verifyResult: { ok: true, count: 0, broken_at: null, why: null },
   activeOutcomeFilter: 'ALL',
   searchQuery: '',
   contractVersion: '1.0.0',
   autoSyncEnabled: true,
   syncTimer: null,
+  selectedSeq: null,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,13 +24,8 @@ async function initApp() {
 }
 
 function setupEventListeners() {
-  // Action Buttons
   document.getElementById('btnVerify').addEventListener('click', async () => {
     await verifyChain();
-  });
-
-  document.getElementById('btnRefresh').addEventListener('click', async () => {
-    await refreshAll();
   });
 
   document.getElementById('btnBenign').addEventListener('click', async () => {
@@ -44,7 +40,6 @@ function setupEventListeners() {
     await executeTamper();
   });
 
-  // Auto-Sync Toggle
   document.getElementById('btnToggleSync').addEventListener('click', () => {
     state.autoSyncEnabled = !state.autoSyncEnabled;
     const btn = document.getElementById('btnToggleSync');
@@ -73,32 +68,28 @@ function setupEventListeners() {
     policyModal.classList.add('hidden');
   });
 
-  // Receipt Modal
-  const receiptModal = document.getElementById('receiptModal');
-  document.getElementById('btnCloseReceiptModal').addEventListener('click', () => {
-    receiptModal.classList.add('hidden');
-  });
-  document.getElementById('btnDismissReceipt').addEventListener('click', () => {
-    receiptModal.classList.add('hidden');
+  // Inspect Drawer Close
+  document.getElementById('btnCloseInspect').addEventListener('click', () => {
+    closeInspectPanel();
   });
 
   // Filter Pills
-  document.querySelectorAll('.filter-pills .pill').forEach(pill => {
+  document.querySelectorAll('.pill-group .pill').forEach(pill => {
     pill.addEventListener('click', (e) => {
-      document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.pill-group .pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       state.activeOutcomeFilter = pill.getAttribute('data-filter-outcome');
       renderLogStream();
     });
   });
 
-  // Search input
+  // Search Input
   document.getElementById('searchInput').addEventListener('input', (e) => {
     state.searchQuery = e.target.value.toLowerCase().trim();
     renderLogStream();
   });
 
-  // Custom Act Modal
+  // Custom Action Modal
   const actModal = document.getElementById('actModal');
   document.getElementById('btnCustomAct').addEventListener('click', () => {
     actModal.classList.remove('hidden');
@@ -116,7 +107,6 @@ function setupEventListeners() {
     actModal.classList.add('hidden');
   });
 
-  // Update act tool args template on change
   document.getElementById('actTool').addEventListener('change', (e) => {
     const tool = e.target.value;
     const argsInput = document.getElementById('actArgsJson');
@@ -181,68 +171,75 @@ async function fetchReceiptText(seq) {
   return null;
 }
 
-async function inspectReceipt(seq) {
+function inspectRow(seq) {
+  state.selectedSeq = seq;
   const entry = state.logEntries.find(e => e.seq === seq);
   if (!entry) return;
 
-  const plainText = await fetchReceiptText(seq);
-  const receiptModal = document.getElementById('receiptModal');
-  const container = document.getElementById('receiptModalContent');
+  const panel = document.getElementById('inspectPanel');
+  const seqNum = document.getElementById('inspectSeqNum');
+  const body = document.getElementById('inspectPanelBody');
 
-  const tsDate = new Date(entry.ts).toISOString();
+  seqNum.textContent = entry.seq;
 
-  container.innerHTML = `
-    <div class="receipt-card">
-      <div style="background:var(--bg-card); border:1px solid var(--border-strong); padding:10px; font-weight:700; color:${entry.decision.outcome === 'ALLOW' ? 'var(--signal-allow)' : entry.decision.outcome === 'STEP_UP' ? 'var(--signal-stepup)' : 'var(--signal-deny)'}; font-size:13px;">
-        💬 ${plainText || entry.decision.reason_code}
-      </div>
+  const plainText = state.receiptCache[seq] || entry.decision.reason_code;
+  const isTampered = (!state.verifyResult.ok && state.verifyResult.broken_at === entry.seq);
 
-      <div class="receipt-row" style="margin-top:6px;">
-        <span class="receipt-key">Sequence Number:</span>
-        <span class="receipt-val">#${entry.seq}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-key">Timestamp (UTC):</span>
-        <span class="receipt-val">${tsDate}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-key">Principal:</span>
-        <span class="receipt-val">${entry.request.principal}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-key">Guarded Agent:</span>
-        <span class="receipt-val">${entry.request.agent}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-key">Attempted Tool:</span>
-        <span class="receipt-val">${entry.request.tool}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-key">Decision Outcome:</span>
-        <span class="receipt-val" style="color: ${entry.decision.outcome === 'ALLOW' ? 'var(--signal-allow)' : entry.decision.outcome === 'STEP_UP' ? 'var(--signal-stepup)' : 'var(--signal-deny)'}; font-weight:700;">
-          ${entry.decision.outcome}
+  body.innerHTML = `
+    ${isTampered ? `
+      <div class="drawer-section" style="border-color:var(--signal-deny-border); background-color:var(--signal-deny-bg);">
+        <span class="drawer-label" style="color:var(--signal-deny);">CRITICAL TAMPER ANOMALY DETECTED</span>
+        <span class="drawer-val" style="color:var(--signal-deny); font-weight:600;">
+          Provenance Link Broken: ${state.verifyResult.why}
         </span>
       </div>
-      <div class="receipt-row">
-        <span class="receipt-key">Reason Code:</span>
-        <span class="receipt-val">${entry.decision.reason_code}</span>
-      </div>
-      <div class="receipt-row">
-        <span class="receipt-key">Matched Policy Rule:</span>
-        <span class="receipt-val">${entry.decision.matched_rule || '(default fallback)'}</span>
-      </div>
-      <div class="receipt-row" style="flex-direction:column; gap:4px; margin-top:8px;">
-        <span class="receipt-key">Cryptographic Entry Hash:</span>
-        <span class="receipt-val" style="word-break:break-all; font-size:10px;">${entry.entry_hash}</span>
-      </div>
-      <div class="receipt-row" style="flex-direction:column; gap:4px;">
-        <span class="receipt-key">Ed25519 Signature:</span>
-        <span class="receipt-val" style="word-break:break-all; font-size:10px;">${entry.signature}</span>
-      </div>
+    ` : ''}
+
+    <div class="drawer-section">
+      <span class="drawer-label">PLAIN-ENGLISH RECEIPT</span>
+      <span class="drawer-val" style="font-weight:600; color: ${entry.decision.outcome === 'ALLOW' ? 'var(--signal-allow)' : entry.decision.outcome === 'STEP_UP' ? 'var(--signal-stepup)' : 'var(--signal-deny)'};">
+        ${plainText}
+      </span>
+    </div>
+
+    <div class="drawer-section">
+      <span class="drawer-label">PRINCIPAL &amp; GUARDED AGENT</span>
+      <span class="drawer-val"><strong>${entry.request.principal}</strong> / <span class="mono">${entry.request.agent}</span></span>
+    </div>
+
+    <div class="drawer-section">
+      <span class="drawer-label">TOOL &amp; POLICY REASON</span>
+      <span class="drawer-val"><strong>${entry.request.tool}</strong> (<span class="mono">code: ${entry.decision.reason_code}</span>)</span>
+      ${entry.decision.matched_rule ? `<span class="drawer-val mono" style="color:var(--text-muted); font-size:11px;">rule: ${entry.decision.matched_rule}</span>` : ''}
+    </div>
+
+    <div class="drawer-section">
+      <span class="drawer-label">ACTION ARGUMENTS</span>
+      <pre class="code-box-json mono">${JSON.stringify(entry.request.args, null, 2)}</pre>
+    </div>
+
+    <div class="drawer-section">
+      <span class="drawer-label">SHA-256 ENTRY HASH</span>
+      <span class="drawer-val mono" style="font-size:11px; word-break:break-all;">${entry.entry_hash}</span>
+    </div>
+
+    <div class="drawer-section">
+      <span class="drawer-label">PREVIOUS ENTRY HASH</span>
+      <span class="drawer-val mono" style="font-size:11px; word-break:break-all;">${entry.prev_hash === "" ? "(Root Genesis)" : entry.prev_hash}</span>
+    </div>
+
+    <div class="drawer-section">
+      <span class="drawer-label">ED25519 SIGNATURE</span>
+      <span class="drawer-val mono" style="font-size:11px; word-break:break-all;">${entry.signature}</span>
     </div>
   `;
 
-  receiptModal.classList.remove('hidden');
+  panel.classList.remove('hidden');
+}
+
+function closeInspectPanel() {
+  state.selectedSeq = null;
+  document.getElementById('inspectPanel').classList.add('hidden');
 }
 
 async function loadContractVersion() {
@@ -279,7 +276,6 @@ async function fetchLogEntries() {
 }
 
 async function prefetchReceipts() {
-  // Pre-fetch plain English receipts for all entries
   for (const entry of state.logEntries) {
     if (!state.receiptCache[entry.seq]) {
       await fetchReceiptText(entry.seq);
@@ -298,6 +294,9 @@ async function verifyChain() {
       state.verifyResult = await res.json();
       renderIntegrityBanner();
       renderLogStream();
+      if (state.selectedSeq !== null) {
+        inspectRow(state.selectedSeq);
+      }
     }
   } catch (err) {
     console.error('Error verifying chain:', err);
@@ -402,11 +401,6 @@ function updateMetrics() {
     else if (outcome === 'DENY') denyCount++;
   });
 
-  document.getElementById('metricTotal').textContent = total;
-  document.getElementById('metricAllow').textContent = allowCount;
-  document.getElementById('metricStepUp').textContent = stepUpCount;
-  document.getElementById('metricDeny').textContent = denyCount;
-
   document.getElementById('countAll').textContent = total;
   document.getElementById('countAllow').textContent = allowCount;
   document.getElementById('countStepUp').textContent = stepUpCount;
@@ -418,7 +412,7 @@ function populateTamperSelect() {
   select.innerHTML = '';
 
   if (state.logEntries.length === 0) {
-    select.innerHTML = '<option value="">No entries available</option>';
+    select.innerHTML = '<option value="">Target Entry...</option>';
     return;
   }
 
@@ -426,42 +420,42 @@ function populateTamperSelect() {
   sorted.forEach(entry => {
     const opt = document.createElement('option');
     opt.value = entry.seq;
-    opt.textContent = `Seq #${entry.seq} — [${entry.decision.outcome}] ${entry.request.tool} (${entry.decision.reason_code})`;
+    opt.textContent = `#${entry.seq} [${entry.decision.outcome}] ${entry.request.tool}`;
     select.appendChild(opt);
   });
 }
 
 function renderIntegrityBanner() {
   const banner = document.getElementById('integrityBanner');
-  const checkIcon = document.getElementById('shieldCheckIcon');
-  const alertIcon = document.getElementById('shieldAlertIcon');
   const title = document.getElementById('integrityTitle');
   const desc = document.getElementById('integrityDesc');
   const cryptoChip = document.getElementById('cryptoChip');
+  const iconIntact = document.getElementById('iconIntact');
+  const iconAlert = document.getElementById('iconAlert');
 
   const { ok, count, broken_at, why } = state.verifyResult;
 
   if (ok) {
-    banner.className = 'banner-card integrity-banner intact';
-    checkIcon.classList.remove('hidden');
-    alertIcon.classList.add('hidden');
-    title.textContent = '[ ✓ CHAIN VERIFIED — ALL REPLICATED ENTRIES INTACT ]';
-    cryptoChip.textContent = `SHA-256 CHAIN · ED25519 SIGNED (${count} ENTRIES)`;
-    desc.textContent = `All ${count} log entries strictly verified against tamper-proof cryptographic signatures. No unauthorized modifications detected.`;
+    banner.className = 'banner-integrity intact';
+    iconIntact.classList.remove('hidden');
+    iconAlert.classList.add('hidden');
+    title.textContent = 'Provenance Chain Verified';
+    cryptoChip.textContent = `SHA-256 Chain · Ed25519 Signed (${count} Verified)`;
+    desc.textContent = `All ${count} log entries cryptographically verified against tamper-evident signatures. Zero anomalies detected.`;
   } else {
-    banner.className = 'banner-card integrity-banner broken';
-    checkIcon.classList.add('hidden');
-    alertIcon.classList.remove('hidden');
-    title.textContent = `[ 🚨 CRITICAL PROVENANCE TAMPER DETECTED AT SEQ #${broken_at} ]`;
-    cryptoChip.textContent = `CHAIN BROKEN: ${why.toUpperCase()}`;
-    desc.textContent = `Verification failure on entry sequence #${broken_at}. Reason: '${why}'. Chain link or cryptographic signature validation failed!`;
+    banner.className = 'banner-integrity broken';
+    iconIntact.classList.add('hidden');
+    iconAlert.classList.remove('hidden');
+    title.textContent = `Critical: Log Tampering Detected at Entry #${broken_at}`;
+    cryptoChip.textContent = `Corrupted: ${why.toUpperCase()}`;
+    desc.textContent = `Verification failed on sequence #${broken_at}. Reason code: '${why}'. Chain link or cryptographic signature validation failed!`;
   }
 }
 
 function renderLogStream() {
-  const stream = document.getElementById('logStream');
+  const tbody = document.getElementById('logTableBody');
   const emptyState = document.getElementById('emptyState');
-  stream.innerHTML = '';
+  tbody.innerHTML = '';
 
   let filtered = state.logEntries;
 
@@ -485,7 +479,6 @@ function renderLogStream() {
   }
 
   if (filtered.length === 0) {
-    stream.appendChild(emptyState);
     emptyState.classList.remove('hidden');
     return;
   }
@@ -493,88 +486,33 @@ function renderLogStream() {
   emptyState.classList.add('hidden');
 
   filtered.forEach(entry => {
-    const card = document.createElement('div');
+    const row = document.createElement('tr');
     const isTamperedTarget = (!state.verifyResult.ok && state.verifyResult.broken_at === entry.seq);
 
-    card.className = `log-card outcome-${entry.decision.outcome} ${isTamperedTarget ? 'tampered-highlight' : ''}`;
-    
-    const tsDate = new Date(entry.ts);
-    const formattedTs = tsDate.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-    const plainReceipt = state.receiptCache[entry.seq] || null;
-
-    let argsHtml = '';
-    if (entry.request.args && Object.keys(entry.request.args).length > 0) {
-      const formattedArgs = Object.entries(entry.request.args)
-        .map(([k, v]) => `<span class="args-key">${k}</span>: <span class="args-val">"${v}"</span>`)
-        .join(', ');
-      argsHtml = `<div class="args-box">{ ${formattedArgs} }</div>`;
+    if (isTamperedTarget) {
+      row.className = 'row-tampered';
     }
 
-    card.innerHTML = `
-      ${isTamperedTarget ? `
-        <div style="background:var(--signal-deny); color:#000; padding:6px 12px; font-weight:700; font-size:11px; letter-spacing:1px;">
-          🚨 CRITICAL: PROVENANCE CHAIN LINK BROKEN AT SEQ #${entry.seq} — REASON: ${state.verifyResult.why}
-        </div>
-      ` : ''}
+    const tsFormatted = new Date(entry.ts).toISOString().replace('T', ' ').substring(0, 19);
+    const prose = state.receiptCache[entry.seq] || entry.decision.reason_code;
 
-      <div class="log-header">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="log-seq-tag">#${entry.seq}</span>
-          <span class="log-outcome-badge">${entry.decision.outcome}</span>
-        </div>
-        <div class="log-meta-right">
-          <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 10px;" onclick="inspectReceipt(${entry.seq})">
-            🔍 Receipt
-          </button>
-          <span class="log-ts">${formattedTs}</span>
-        </div>
-      </div>
+    row.onclick = () => inspectRow(entry.seq);
 
-      <div class="log-body">
-        <div class="log-request-info">
-          <span class="principal-agent">${entry.request.principal} · ${entry.request.agent}</span>
-          <span class="tool-chip">${entry.request.tool}</span>
-          <span class="reason-chip">code: ${entry.decision.reason_code}</span>
-          ${entry.decision.matched_rule ? `<span class="matched-rule">rule: ${entry.decision.matched_rule}</span>` : ''}
-        </div>
-
-        ${plainReceipt ? `
-          <div style="font-size:12px; font-weight:600; color:var(--text-primary); padding:6px 10px; background:var(--bg-input); border:1px solid var(--border-hairline);">
-            💬 ${plainReceipt}
-          </div>
-        ` : ''}
-
-        ${argsHtml}
-
-        <div class="crypto-drawer">
-          <button class="crypto-toggle" onclick="toggleCryptoDetails(${entry.seq})">
-            <span>▶ Cryptographic Provenance Details</span>
-          </button>
-          <div class="crypto-details hidden" id="cryptoDetails-${entry.seq}">
-            <div class="hash-row">
-              <span class="hash-label">Entry Hash:</span>
-              <span class="hash-val">${entry.entry_hash || '0000000000000000000000000000000000000000000000000000000000000000'}</span>
-            </div>
-            <div class="hash-row">
-              <span class="hash-label">Prev Hash:</span>
-              <span class="hash-val">${entry.prev_hash === "" ? '(root genesis)' : entry.prev_hash}</span>
-            </div>
-            <div class="hash-row">
-              <span class="hash-label">Ed25519 Sig:</span>
-              <span class="hash-val">${entry.signature || '0000000000000000000000000000000000000000000000000000000000000000'}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    row.innerHTML = `
+      <td class="seq-cell mono">#${entry.seq}</td>
+      <td class="ts-cell mono">${tsFormatted}</td>
+      <td><span class="badge-outcome badge-${entry.decision.outcome}">${entry.decision.outcome}</span></td>
+      <td class="tool-cell mono">${entry.request.tool}</td>
+      <td class="principal-cell">${entry.request.principal}</td>
+      <td class="prose-cell">
+        <span class="prose-main">${prose}</span>
+        <span class="prose-reason mono">(${entry.decision.reason_code})</span>
+      </td>
+      <td style="text-align: right;">
+        <button class="btn-ghost" style="padding: 2px 8px; font-size: 11px;" onclick="event.stopPropagation(); inspectRow(${entry.seq})">Inspect</button>
+      </td>
     `;
 
-    stream.appendChild(card);
+    tbody.appendChild(row);
   });
-}
-
-function toggleCryptoDetails(seq) {
-  const el = document.getElementById(`cryptoDetails-${seq}`);
-  if (el) {
-    el.classList.toggle('hidden');
-  }
 }

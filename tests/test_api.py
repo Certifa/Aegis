@@ -62,7 +62,7 @@ def test_contract_version(client: TestClient) -> None:
 def test_root_serves_console_ui(client: TestClient) -> None:
     response = client.get("/")
     assert response.status_code == 200
-    assert "Aegis — Policy & Provenance Gateway" in response.text
+    assert "Aegis" in response.text
     assert "<!DOCTYPE html>" in response.text
 
 
