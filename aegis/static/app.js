@@ -6,6 +6,8 @@ state = {
   activeOutcomeFilter: 'ALL',
   searchQuery: '',
   contractVersion: '1.0.0',
+  autoSyncEnabled: true,
+  syncTimer: null,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,6 +18,7 @@ async function initApp() {
   setupEventListeners();
   await loadContractVersion();
   await refreshAll();
+  startAutoSync();
 }
 
 function setupEventListeners() {
@@ -40,6 +43,44 @@ function setupEventListeners() {
     await executeTamper();
   });
 
+  // Auto-Sync Toggle
+  document.getElementById('btnToggleSync').addEventListener('click', () => {
+    state.autoSyncEnabled = !state.autoSyncEnabled;
+    const btn = document.getElementById('btnToggleSync');
+    const text = document.getElementById('syncStateText');
+
+    if (state.autoSyncEnabled) {
+      btn.classList.remove('off');
+      text.textContent = 'ON';
+      startAutoSync();
+    } else {
+      btn.classList.add('off');
+      text.textContent = 'OFF';
+      stopAutoSync();
+    }
+  });
+
+  // Policy Modal
+  const policyModal = document.getElementById('policyModal');
+  document.getElementById('btnViewPolicyHeader').addEventListener('click', async () => {
+    await openPolicyModal();
+  });
+  document.getElementById('btnClosePolicyModal').addEventListener('click', () => {
+    policyModal.classList.add('hidden');
+  });
+  document.getElementById('btnDismissPolicy').addEventListener('click', () => {
+    policyModal.classList.add('hidden');
+  });
+
+  // Receipt Modal
+  const receiptModal = document.getElementById('receiptModal');
+  document.getElementById('btnCloseReceiptModal').addEventListener('click', () => {
+    receiptModal.classList.add('hidden');
+  });
+  document.getElementById('btnDismissReceipt').addEventListener('click', () => {
+    receiptModal.classList.add('hidden');
+  });
+
   // Filter Pills
   document.querySelectorAll('.filter-pills .pill').forEach(pill => {
     pill.addEventListener('click', (e) => {
@@ -57,21 +98,21 @@ function setupEventListeners() {
   });
 
   // Custom Act Modal
-  const modal = document.getElementById('actModal');
+  const actModal = document.getElementById('actModal');
   document.getElementById('btnCustomAct').addEventListener('click', () => {
-    modal.classList.remove('hidden');
+    actModal.classList.remove('hidden');
   });
   document.getElementById('btnCloseModal').addEventListener('click', () => {
-    modal.classList.add('hidden');
+    actModal.classList.add('hidden');
   });
   document.getElementById('btnCancelAct').addEventListener('click', () => {
-    modal.classList.add('hidden');
+    actModal.classList.add('hidden');
   });
 
   document.getElementById('actForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     await submitCustomAction();
-    modal.classList.add('hidden');
+    actModal.classList.add('hidden');
   });
 
   // Update act tool args template on change
@@ -88,6 +129,99 @@ function setupEventListeners() {
       argsInput.value = JSON.stringify({ amount_eur: 45, iban: "DE89370400440532013000", memo: "Invoice #102" }, null, 2);
     }
   });
+}
+
+function startAutoSync() {
+  stopAutoSync();
+  state.syncTimer = setInterval(async () => {
+    if (state.autoSyncEnabled) {
+      await refreshAll();
+    }
+  }, 2500);
+}
+
+function stopAutoSync() {
+  if (state.syncTimer) {
+    clearInterval(state.syncTimer);
+    state.syncTimer = null;
+  }
+}
+
+async function openPolicyModal() {
+  const policyModal = document.getElementById('policyModal');
+  const yamlElem = document.getElementById('policyYamlContent');
+  policyModal.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/policy');
+    if (res.ok) {
+      const data = await res.json();
+      yamlElem.textContent = data.policy_yaml;
+    } else {
+      yamlElem.textContent = 'Failed to load policy specification.';
+    }
+  } catch (err) {
+    yamlElem.textContent = `Error loading policy: ${err.message}`;
+  }
+}
+
+function inspectReceipt(seq) {
+  const entry = state.logEntries.find(e => e.seq === seq);
+  if (!entry) return;
+
+  const receiptModal = document.getElementById('receiptModal');
+  const container = document.getElementById('receiptModalContent');
+
+  const tsDate = new Date(entry.ts).toISOString();
+
+  container.innerHTML = `
+    <div class="receipt-card">
+      <div class="receipt-row">
+        <span class="receipt-key">Sequence Number:</span>
+        <span class="receipt-val">#${entry.seq}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Timestamp (UTC):</span>
+        <span class="receipt-val">${tsDate}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Principal:</span>
+        <span class="receipt-val">${entry.request.principal}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Guarded Agent:</span>
+        <span class="receipt-val">${entry.request.agent}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Attempted Tool:</span>
+        <span class="receipt-val">${entry.request.tool}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Decision Outcome:</span>
+        <span class="receipt-val" style="color: ${entry.decision.outcome === 'ALLOW' ? '#10B981' : entry.decision.outcome === 'STEP_UP' ? '#F59E0B' : '#EF4444'}; font-weight:700;">
+          ${entry.decision.outcome}
+        </span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Reason Code:</span>
+        <span class="receipt-val">${entry.decision.reason_code}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Matched Policy Rule:</span>
+        <span class="receipt-val">${entry.decision.matched_rule || '(default fallback)'}</span>
+      </div>
+      <div class="receipt-row" style="flex-direction:column; gap:4px; margin-top:8px;">
+        <span class="receipt-key">Cryptographic Entry Hash:</span>
+        <span class="receipt-val" style="word-break:break-all; font-size:11px;">${entry.entry_hash}</span>
+      </div>
+      <div class="receipt-row" style="flex-direction:column; gap:4px;">
+        <span class="receipt-key">Ed25519 Signature:</span>
+        <span class="receipt-val" style="word-break:break-all; font-size:11px;">${entry.signature}</span>
+      </div>
+    </div>
+  `;
+
+  receiptModal.classList.remove('hidden');
 }
 
 async function loadContractVersion() {
@@ -257,7 +391,6 @@ function populateTamperSelect() {
     return;
   }
 
-  // Sort entries by seq ascending for select dropdown
   const sorted = [...state.logEntries].sort((a, b) => a.seq - b.seq);
   sorted.forEach(entry => {
     const opt = document.createElement('option');
@@ -301,12 +434,10 @@ function renderLogStream() {
 
   let filtered = state.logEntries;
 
-  // Filter by outcome
   if (state.activeOutcomeFilter !== 'ALL') {
     filtered = filtered.filter(e => e.decision.outcome === state.activeOutcomeFilter);
   }
 
-  // Filter by search query
   if (state.searchQuery) {
     const q = state.searchQuery;
     filtered = filtered.filter(e => {
@@ -335,11 +466,9 @@ function renderLogStream() {
 
     card.className = `log-card outcome-${entry.decision.outcome} ${isTamperedTarget ? 'tampered-highlight' : ''}`;
     
-    // Format timestamp
     const tsDate = new Date(entry.ts);
     const formattedTs = tsDate.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
 
-    // Format args nicely
     let argsHtml = '';
     if (entry.request.args && Object.keys(entry.request.args).length > 0) {
       const formattedArgs = Object.entries(entry.request.args)
@@ -356,6 +485,9 @@ function renderLogStream() {
           ${isTamperedTarget ? '<span class="demo-pill">TAMPERED ROW</span>' : ''}
         </div>
         <div class="log-meta-right">
+          <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;" onclick="inspectReceipt(${entry.seq})">
+            🔍 Inspect Receipt
+          </button>
           <span class="log-ts">${formattedTs}</span>
         </div>
       </div>

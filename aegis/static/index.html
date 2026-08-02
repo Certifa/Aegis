@@ -40,6 +40,13 @@
       </div>
 
       <div class="header-meta">
+        <button id="btnToggleSync" class="badge sync-badge" title="Toggle Auto-Sync Polling">
+          <span class="dot sync-dot"></span>
+          <span>LIVE AUTO-SYNC: <strong id="syncStateText">ON</strong></span>
+        </button>
+        <button id="btnViewPolicyHeader" class="badge policy-btn-badge" title="View Active Policy YAML">
+          <span>📜 POLICY</span>
+        </button>
         <div class="badge version-badge" id="contractVersionBadge">
           <span class="label">CONTRACT</span>
           <span class="value" id="contractVersion">v1.0.0</span>
@@ -327,6 +334,39 @@
     </div>
 
   </div>
+
+    <!-- Policy YAML Viewer Modal -->
+    <div class="modal-overlay hidden" id="policyModal">
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <h3>Active Policy Specification (`inbox-assistant.yaml`)</h3>
+          <button class="btn-close" id="btnClosePolicyModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="policy-note">Deterministic enforcement rules evaluated synchronously before tool execution:</p>
+          <pre class="code-block-yaml" id="policyYamlContent">Loading policy YAML...</pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnDismissPolicy">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Receipt Explainer Modal -->
+    <div class="modal-overlay hidden" id="receiptModal">
+      <div class="modal-card modal-medium">
+        <div class="modal-header">
+          <h3>Enforcement Receipt Inspection</h3>
+          <button class="btn-close" id="btnCloseReceiptModal">&times;</button>
+        </div>
+        <div class="modal-body" id="receiptModalContent">
+          <!-- Dynamic Receipt Details -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btnDismissReceipt">Close Receipt</button>
+        </div>
+      </div>
+    </div>
 
   <!-- App Script -->
   <script src="/static/app.js"></script>

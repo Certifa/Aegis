@@ -913,6 +913,97 @@ body {
   margin-top: 10px;
 }
 
+.sync-badge {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: rgba(0, 229, 255, 0.3);
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sync-badge:hover {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: var(--color-accent);
+}
+
+.sync-dot {
+  background-color: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent);
+}
+
+.sync-badge.off {
+  background: var(--bg-input);
+  border-color: var(--border-color);
+  color: var(--text-subtle);
+}
+
+.sync-badge.off .sync-dot {
+  background-color: var(--text-subtle);
+  box-shadow: none;
+  animation: none;
+}
+
+.policy-btn-badge {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.3);
+  color: var(--color-purple);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.policy-btn-badge:hover {
+  background: rgba(124, 58, 237, 0.25);
+  border-color: var(--color-purple);
+}
+
+.modal-large {
+  max-width: 700px;
+}
+
+.modal-medium {
+  max-width: 600px;
+}
+
+.code-block-yaml {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #A7F3D0;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.receipt-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.receipt-key {
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+
+.receipt-val {
+  color: var(--text-main);
+  font-family: var(--font-mono);
+}
+
 .hidden {
   display: none !important;
 }
