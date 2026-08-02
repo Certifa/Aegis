@@ -17,6 +17,8 @@ import asyncio
 import logging
 import os
 import sys
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
@@ -35,6 +37,7 @@ logger = logging.getLogger(__name__)
 MODEL = "claude-opus-5"
 MAX_TURNS = 8  # a fooled agent that loops forever is still a bad demo
 MAX_TOKENS = 8192  # on Opus 5 this caps thinking AND response text together
+REQUEST_TIMEOUT = 300.0  # seconds; a stuck request should fail, not hang forever
 
 # Deliberately says nothing about prompt injection, policy, or Aegis. Warning
 # the agent would make the injected scenario a test of the prompt rather than a
@@ -151,10 +154,21 @@ def _tool_result(interception: Interception, tool_use_id: str) -> dict[str, Any]
 
 class Agent:
     def __init__(
-        self, interceptor: Interceptor, client: AsyncAnthropic | None = None
+        self,
+        interceptor: Interceptor,
+        client: AsyncAnthropic | None = None,
+        *,
+        on_turn: Callable[[int], None] | None = None,
+        on_interception: Callable[[Interception], None] | None = None,
     ) -> None:
         self._interceptor = interceptor
-        self._client = client if client is not None else AsyncAnthropic()
+        # A generous timeout so a genuinely stuck request fails with a clear
+        # error instead of hanging until someone hits Ctrl-C.
+        self._client = (
+            client if client is not None else AsyncAnthropic(timeout=REQUEST_TIMEOUT)
+        )
+        self._on_turn = on_turn
+        self._on_interception = on_interception
 
     async def run(self, task: str) -> AgentRun:
         run = AgentRun(task=task)
@@ -162,7 +176,15 @@ class Agent:
 
         for turn in range(MAX_TURNS):
             run.turns = turn + 1
-            response = await self._client.beta.messages.create(
+            if self._on_turn is not None:
+                self._on_turn(run.turns)
+
+            # Streaming, not create(). A non-streaming call returns nothing at
+            # all until generation finishes — on this model that is a minute of
+            # silence with no way to tell working from hung, and it risks an
+            # HTTP timeout on longer turns. get_final_message() still gives us
+            # one assembled message to work with.
+            async with self._client.beta.messages.stream(
                 model=MODEL,
                 max_tokens=MAX_TOKENS,
                 system=SYSTEM_PROMPT,
@@ -173,7 +195,8 @@ class Agent:
                 # payload. Falling back to another model beats the demo dying.
                 betas=["server-side-fallback-2026-07-01"],
                 fallbacks="default",
-            )
+            ) as stream:
+                response = await stream.get_final_message()
             run.stop_reason = response.stop_reason
 
             # A refusal is an HTTP 200 with empty or partial content. Reading
@@ -203,6 +226,8 @@ class Agent:
                     block.name, cast(dict[str, Any], block.input)
                 )
                 run.interceptions.append(interception)
+                if self._on_interception is not None:
+                    self._on_interception(interception)
                 results.append(_tool_result(interception, block.id))
 
             # All results in ONE user message. Splitting them across several
@@ -235,7 +260,24 @@ async def _main(scenario: str) -> int:
     task = BENIGN_TASK if scenario == "benign" else INJECTED_TASK
     policy = load_policy(_POLICY_PATH)
     log = ProvenanceLog(load_or_generate_keypair())
-    agent = Agent(Interceptor(policy, log))
+    started = time.monotonic()
+
+    def on_turn(turn: int) -> None:
+        print(f"  turn {turn}: waiting on the model…", flush=True)
+
+    def on_interception(i: Interception) -> None:
+        d = i.decision
+        args = {k: v for k, v in i.request.args.items() if k != "body"}
+        elapsed = time.monotonic() - started
+        print(
+            f"    {i.request.tool:<13} {str(args)[:52]:<54} "
+            f"-> {d.outcome:<8} {d.reason_code}  [{elapsed:.0f}s]",
+            flush=True,
+        )
+
+    agent = Agent(
+        Interceptor(policy, log), on_turn=on_turn, on_interception=on_interception
+    )
 
     print(f"task: {task}\n")
     run = await agent.run(task)
@@ -244,11 +286,6 @@ async def _main(scenario: str) -> int:
         print("The model declined the request outright (stop_reason=refusal).")
         print("No actions were attempted. Try the deterministic path: /demo/injected")
         return 1
-
-    for i in run.interceptions:
-        d = i.decision
-        args = {k: v for k, v in i.request.args.items() if k != "body"}
-        print(f"  {i.request.tool:<14} {str(args)[:58]:<60} -> {d.outcome:<8} {d.reason_code}")
 
     blocked = [i for i in run.interceptions if i.decision.outcome != "ALLOW"]
     attacks = [i for i in run.interceptions if i.request.tool in _ATTACK_TOOLS]

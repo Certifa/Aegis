@@ -56,6 +56,22 @@ class FakeMessage:
     stop_details: Any = None
 
 
+class FakeStream:
+    """Stands in for the SDK's async streaming context manager."""
+
+    def __init__(self, message: FakeMessage) -> None:
+        self._message = message
+
+    async def __aenter__(self) -> FakeStream:
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        return None
+
+    async def get_final_message(self) -> FakeMessage:
+        return self._message
+
+
 @dataclass
 class FakeMessages:
     """Replays a scripted list of responses, one per turn."""
@@ -64,7 +80,7 @@ class FakeMessages:
     seen: list[dict[str, Any]] = field(default_factory=list)
     calls: int = 0
 
-    async def create(self, **kwargs: object) -> FakeMessage:
+    def stream(self, **kwargs: object) -> FakeStream:
         # Snapshot `messages`: the agent mutates the same list across turns, so
         # storing the reference would record only the final state and make
         # per-turn assertions silently meaningless.
@@ -72,7 +88,7 @@ class FakeMessages:
         self.seen.append({**kwargs, "messages": list(sent)})
         index = min(self.calls, len(self.script) - 1)
         self.calls += 1
-        return self.script[index]
+        return FakeStream(self.script[index])
 
 
 class FakeBeta:
@@ -266,6 +282,32 @@ async def test_the_system_prompt_never_mentions_the_boundary() -> None:
     system = client.messages.seen[0]["system"].lower()
     for word in ("aegis", "injection", "policy", "block", "attack", "malicious"):
         assert word not in system, f"the system prompt leaks {word!r} to the agent"
+
+
+async def test_progress_callbacks_fire_as_work_happens() -> None:
+    """The CLI prints from these. Without them a run is a minute of blank
+    terminal, which on camera is indistinguishable from a hang."""
+    turns: list[int] = []
+    seen: list[str] = []
+
+    policy = load_policy(POLICY_PATH)
+    log = ProvenanceLog(keypair_from_seed(SEED))
+    client = FakeClient(
+        [
+            FakeMessage(content=[FakeToolUse("read_file", {"path": "/data/a.md"})]),
+            done(),
+        ]
+    )
+    agent = Agent(
+        Interceptor(policy, log),
+        cast(AsyncAnthropic, client),
+        on_turn=turns.append,
+        on_interception=lambda i: seen.append(i.request.tool),
+    )
+    await agent.run("read it")
+
+    assert turns == [1, 2]
+    assert seen == ["read_file"]
 
 
 async def test_all_four_tools_are_offered() -> None:
