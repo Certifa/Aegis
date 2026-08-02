@@ -67,6 +67,11 @@ function setupEventListeners() {
   document.getElementById('btnDismissPolicy').addEventListener('click', () => {
     policyModal.classList.add('hidden');
   });
+  policyModal.addEventListener('click', (e) => {
+    if (e.target === policyModal) {
+      policyModal.classList.add('hidden');
+    }
+  });
 
   // Inspect Drawer Close
   document.getElementById('btnCloseInspect').addEventListener('click', () => {
@@ -99,6 +104,20 @@ function setupEventListeners() {
   });
   document.getElementById('btnCancelAct').addEventListener('click', () => {
     actModal.classList.add('hidden');
+  });
+  actModal.addEventListener('click', (e) => {
+    if (e.target === actModal) {
+      actModal.classList.add('hidden');
+    }
+  });
+
+  // Global Escape key listener for closing modals & inspector drawer
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      policyModal.classList.add('hidden');
+      actModal.classList.add('hidden');
+      closeInspectPanel();
+    }
   });
 
   document.getElementById('actForm').addEventListener('submit', async (e) => {
