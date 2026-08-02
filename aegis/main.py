@@ -127,6 +127,12 @@ def contract() -> dict[str, str]:
     return {"version": CONTRACT_VERSION}
 
 
+@app.get("/policy")
+def get_policy() -> dict[str, str]:
+    """Returns the active YAML policy content for console visualization."""
+    return {"policy_yaml": _POLICY_PATH.read_text()}
+
+
 @app.get("/log")
 def get_log(log: LogDep) -> list[LogEntry]:
     """Full chain, newest first (spec section 7).
