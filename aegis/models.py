@@ -36,14 +36,17 @@ class Condition(BaseModel):
     to_domain: str | None = None      # exact match on the domain of args['to'], or '*'
     path_prefix: str | None = None    # args['path'] starts with this
     max_eur: Decimal | None = None    # passes if args['amount_eur'] <= this
+    # Catch-all for a tool. `always: false` is a rule that matches nothing,
+    # which is only ever a mistake, so the type forbids it.
+    always: Literal[True] | None = None
 
     @model_validator(mode="after")
     def _exactly_one_kind(self) -> Self:
-        kinds = (self.to_domain, self.path_prefix, self.max_eur)
+        kinds = (self.to_domain, self.path_prefix, self.max_eur, self.always)
         if sum(k is not None for k in kinds) != 1:
             raise ValueError(
                 "a rule's `when:` must set exactly one of "
-                "to_domain / path_prefix / max_eur"
+                "to_domain / path_prefix / max_eur / always"
             )
         return self
 

@@ -1,0 +1,23 @@
+# Tool configuration only. requirements.txt stays authoritative for installs,
+# because the Dockerfile installs from it.
+
+[project]
+name = "aegis"
+version = "0.1.0"
+description = "A policy-and-provenance gateway for AI agents"
+requires-python = ">=3.13"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "ANN", "RUF"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

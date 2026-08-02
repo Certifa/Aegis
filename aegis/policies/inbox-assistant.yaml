@@ -1,0 +1,45 @@
+# Bound to one (principal, agent) pair. First match wins, so order matters:
+# the most specific rule for a tool goes first, its catch-all last.
+principal: alice@corp
+agent: inbox-assistant
+
+rules:
+  - id: email-internal-ok
+    tool: send_email
+    when: { to_domain: corp }
+    outcome: ALLOW
+    reason_code: internal_recipient_ok
+
+  - id: email-external-stepup
+    tool: send_email
+    when: { to_domain: '*' }
+    outcome: STEP_UP
+    reason_code: external_recipient_stepup
+
+  - id: read-data-ok
+    tool: read_file
+    when: { path_prefix: /data/ }
+    outcome: ALLOW
+    reason_code: data_path_ok
+
+  - id: read-secrets-deny
+    tool: read_file
+    when: { path_prefix: /secrets/ }
+    outcome: DENY
+    reason_code: secrets_path_blocked
+
+  - id: pay-within-limit
+    tool: make_payment
+    when: { max_eur: 50 }
+    outcome: ALLOW
+    reason_code: amount_within_limit
+
+  - id: pay-over-limit
+    tool: make_payment
+    when: { always: true }
+    outcome: DENY
+    reason_code: amount_exceeds_limit
+
+# http_request has no rule at all, so every http_request is refused by the
+# default below. That is the deny-by-default path, demonstrated for free.
+default: DENY
