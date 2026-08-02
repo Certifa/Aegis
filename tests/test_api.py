@@ -59,6 +59,13 @@ def test_contract_version(client: TestClient) -> None:
     assert client.get("/contract").json() == {"version": "1.0.0"}
 
 
+def test_root_serves_console_ui(client: TestClient) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Aegis — Policy & Provenance Gateway" in response.text
+    assert "<!DOCTYPE html>" in response.text
+
+
 # -- /act -----------------------------------------------------------------------
 
 
