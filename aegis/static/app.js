@@ -5,7 +5,15 @@ state = {
   receiptCache: {},
   verifyResult: { ok: true, count: 0, broken_at: null, why: null },
   activeOutcomeFilter: 'ALL',
+  toolFilter: 'ALL',
+  principalFilter: 'ALL',
+  rangeFilter: 'ALL',
   searchQuery: '',
+  page: 1,
+  pageSize: 20,
+  lastChainHtml: null,
+  lastRowsHtml: null,
+  sweepTimer: null,
   contractVersion: '1.0.0',
   autoSyncEnabled: true,
   syncTimer: null,
@@ -85,19 +93,44 @@ function setupEventListeners() {
     closeInspectPanel();
   });
 
-  // Filter Pills
-  document.querySelectorAll('.pill-group .pill').forEach(pill => {
-    pill.addEventListener('click', (e) => {
-      document.querySelectorAll('.pill-group .pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      state.activeOutcomeFilter = pill.getAttribute('data-filter-outcome');
+  // Filter row
+  const filterMap = {
+    filterOutcome: 'activeOutcomeFilter',
+    filterTool: 'toolFilter',
+    filterPrincipal: 'principalFilter',
+    filterRange: 'rangeFilter',
+  };
+  Object.entries(filterMap).forEach(([id, key]) => {
+    document.getElementById(id).addEventListener('change', (e) => {
+      state[key] = e.target.value;
+      state.page = 1;
       renderLogStream();
     });
   });
 
+  const navPolicy = document.getElementById('navPolicy');
+  if (navPolicy) {
+    navPolicy.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('btnViewPolicyHeader').click();
+    });
+  }
+
+  const btnFocusSearch = document.getElementById('btnFocusSearch');
+  if (btnFocusSearch) {
+    btnFocusSearch.addEventListener('click', () => document.getElementById('searchInput').focus());
+  }
+
   // Search Input
   document.getElementById('searchInput').addEventListener('input', (e) => {
     state.searchQuery = e.target.value.toLowerCase().trim();
+    state.page = 1;
+    renderLogStream();
+  });
+
+  document.getElementById('pageSize').addEventListener('change', (e) => {
+    state.pageSize = parseInt(e.target.value, 10);
+    state.page = 1;
     renderLogStream();
   });
 
@@ -337,6 +370,7 @@ async function verifyChain() {
       renderIntegrityBanner();
       renderLogStream();
       renderChainStrip();
+      renderStatusBar();
       if (state.selectedSeq !== null) {
         inspectRow(state.selectedSeq);
       }
@@ -444,10 +478,47 @@ function updateMetrics() {
     else if (outcome === 'DENY') denyCount++;
   });
 
-  document.getElementById('countAll').textContent = total;
-  document.getElementById('countAllow').textContent = allowCount;
-  document.getElementById('countStepUp').textContent = stepUpCount;
-  document.getElementById('countDeny').textContent = denyCount;
+  // Stat cards. Every figure is computed from the live chain; the export's
+  // trend deltas are omitted because we hold no history to compute one.
+  const pct = total ? ((allowCount / total) * 100).toFixed(1) + '%' : '0%';
+  const setStat = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setStat('statAllowRate', pct);
+  setStat('statStepUps', stepUpCount);
+  setStat('statDenials', denyCount);
+  setStat('statEntries', total);
+
+  // Counts ride on the outcome options rather than a separate pill row.
+  const labels = {
+    ALL: `All outcomes (${total})`,
+    ALLOW: `Allowed (${allowCount})`,
+    STEP_UP: `Step-up required (${stepUpCount})`,
+    DENY: `Denied (${denyCount})`,
+  };
+  const outcomeSel = document.getElementById('filterOutcome');
+  if (outcomeSel) {
+    [...outcomeSel.options].forEach(o => { o.textContent = labels[o.value] || o.textContent; });
+  }
+
+  // Tool and principal are open sets that grow with the log, so their options
+  // are derived from the data rather than hardcoded. Rebuilt only when the
+  // set of values actually changes, so an open dropdown is not yanked shut
+  // by the 2.5s auto-sync poll.
+  syncOptions('filterTool', 'All tools',
+    [...new Set(state.logEntries.map(e => e.request.tool))].sort(), 'toolFilter');
+  syncOptions('filterPrincipal', 'All principals',
+    [...new Set(state.logEntries.map(e => e.request.principal))].sort(), 'principalFilter');
+}
+
+function syncOptions(id, allLabel, values, stateKey) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const current = [...sel.options].slice(1).map(o => o.value).join('|');
+  if (current === values.join('|')) return;
+  const chosen = state[stateKey];
+  sel.innerHTML = `<option value="ALL">${allLabel}</option>`
+    + values.map(v => `<option value="${v}">${v}</option>`).join('');
+  sel.value = values.includes(chosen) ? chosen : 'ALL';
+  if (sel.value === 'ALL') state[stateKey] = 'ALL';
 }
 
 function populateTamperSelect() {
@@ -525,17 +596,47 @@ function renderChainStrip() {
              </button>`;
   });
 
-  strip.innerHTML = html;
+  // Only touch the DOM when the markup actually differs. Auto-sync re-renders
+  // every 2.5s, and rewriting identical innerHTML repaints the strip, drops
+  // hover state, and (worse) recreates every child element.
+  if (html !== state.lastChainHtml) {
+    strip.innerHTML = html;
+    state.lastChainHtml = html;
+  }
 
-  // One motion beat, and only on a real state change. Auto-sync re-renders
-  // every 2.5s; sweeping on every render turns a beat into a throb.
+  // One motion beat, on a genuine verification-state change only.
+  //
+  // The earlier guard was not enough on its own: it stopped the class being
+  // re-added, but never removed it, so any later rebuild produced fresh child
+  // nodes that started the animation again under a parent still carrying
+  // .is-sweeping. The class now comes off once the sweep has played, which is
+  // what actually makes this a beat rather than a throb.
   const sig = ok ? 'ok:' + nodes.length : 'broken:' + broken_at;
   if (state.lastChainSig !== undefined && state.lastChainSig !== sig) {
     strip.classList.remove('is-sweeping');
     void strip.offsetWidth;
     strip.classList.add('is-sweeping');
+
+    clearTimeout(state.sweepTimer);
+    state.sweepTimer = setTimeout(
+      () => strip.classList.remove('is-sweeping'),
+      nodes.length * 70 + 400,
+    );
   }
   state.lastChainSig = sig;
+}
+
+function renderStatusBar() {
+  const { ok, count, broken_at } = state.verifyResult;
+  const chain = document.getElementById('statusChain');
+  if (chain) {
+    chain.textContent = ok ? 'Verified' : `Broken at ${String(broken_at).padStart(4, '0')}`;
+    chain.className = ok ? 'sb-ok' : 'sb-bad';
+  }
+  const sync = document.getElementById('statusSync');
+  if (sync) {
+    sync.textContent = `Last sync ${new Date().toLocaleTimeString()} \u00b7 ${count} entries`;
+  }
 }
 
 function renderIntegrityBanner() {
@@ -564,15 +665,58 @@ function renderIntegrityBanner() {
 
 }
 
+function renderPager(pages, total) {
+  const pager = document.getElementById('pager');
+  if (!pager) return;
+  if (pages <= 1) { pager.innerHTML = ''; return; }
+
+  const cur = state.page;
+  const nums = new Set([1, pages, cur, cur - 1, cur + 1]);
+  const shown = [...nums].filter(n => n >= 1 && n <= pages).sort((a, b) => a - b);
+
+  let html = `<button class="pg-btn" ${cur === 1 ? 'disabled' : ''}
+                      onclick="gotoPage(${cur - 1})" aria-label="Previous page">&lsaquo;</button>`;
+  let prev = 0;
+  shown.forEach(n => {
+    if (n - prev > 1) html += '<span class="pg-gap">...</span>';
+    html += `<button class="pg-btn ${n === cur ? 'is-current' : ''}"
+                     onclick="gotoPage(${n})" ${n === cur ? 'aria-current="page"' : ''}>${n}</button>`;
+    prev = n;
+  });
+  html += `<button class="pg-btn" ${cur === pages ? 'disabled' : ''}
+                   onclick="gotoPage(${cur + 1})" aria-label="Next page">&rsaquo;</button>`;
+  pager.innerHTML = html;
+}
+
+function gotoPage(n) {
+  state.page = n;
+  renderLogStream();
+}
+
+const OUTCOME_LABEL = { ALLOW: 'Allowed', STEP_UP: 'Step-up', DENY: 'Denied' };
+
 function renderLogStream() {
   const tbody = document.getElementById('logTableBody');
   const emptyState = document.getElementById('emptyState');
-  tbody.innerHTML = '';
 
   let filtered = state.logEntries;
 
   if (state.activeOutcomeFilter !== 'ALL') {
     filtered = filtered.filter(e => e.decision.outcome === state.activeOutcomeFilter);
+  }
+
+  if (state.toolFilter !== 'ALL') {
+    filtered = filtered.filter(e => e.request.tool === state.toolFilter);
+  }
+
+  if (state.principalFilter !== 'ALL') {
+    filtered = filtered.filter(e => e.request.principal === state.principalFilter);
+  }
+
+  if (state.rangeFilter !== 'ALL') {
+    const windows = { '1h': 3600e3, '24h': 86400e3, '7d': 604800e3 };
+    const cutoff = Date.now() - windows[state.rangeFilter];
+    filtered = filtered.filter(e => new Date(e.ts).getTime() >= cutoff);
   }
 
   if (state.searchQuery) {
@@ -590,14 +734,45 @@ function renderLogStream() {
     });
   }
 
+  const counter = document.getElementById('filterCount');
+  if (counter) counter.textContent = `${filtered.length} of ${state.logEntries.length}`;
+
+  const foot = document.getElementById('tableFoot');
   if (filtered.length === 0) {
+    // The redraw guard means the clear no longer happens unconditionally at the
+    // top, so an empty result set has to wipe stale rows itself.
+    tbody.innerHTML = '';
+    state.lastRowsHtml = '[]';
     emptyState.classList.remove('hidden');
+    if (foot) foot.classList.add('hidden');
+    renderPager(0, 0);
     return;
   }
 
   emptyState.classList.add('hidden');
+  if (foot) foot.classList.remove('hidden');
 
-  filtered.forEach(entry => {
+  const size = state.pageSize || filtered.length;
+  const pages = Math.max(1, Math.ceil(filtered.length / size));
+  if (state.page > pages) state.page = pages;
+  const start = (state.page - 1) * size;
+  const pageRows = filtered.slice(start, start + size);
+  renderPager(pages, filtered.length);
+
+  // Same class of bug as the chain strip: auto-sync re-renders every 2.5s, and
+  // rebuilding identical rows repaints the table and drops hover mid-read.
+  // Redraw only when something a row actually displays has changed.
+  const rowsSig = JSON.stringify(pageRows.map(e => [
+    e.seq,
+    e.decision.outcome,
+    state.receiptCache[e.seq] || e.decision.reason_code,
+    !state.verifyResult.ok && state.verifyResult.broken_at === e.seq,
+  ]));
+  if (rowsSig === state.lastRowsHtml) return;
+  state.lastRowsHtml = rowsSig;
+
+  tbody.innerHTML = '';
+  pageRows.forEach(entry => {
     const row = document.createElement('tr');
     const isTamperedTarget = (!state.verifyResult.ok && state.verifyResult.broken_at === entry.seq);
 
@@ -612,23 +787,24 @@ function renderLogStream() {
     row.onclick = () => inspectRow(entry.seq);
 
     row.innerHTML = `
+      <td><span class="badge-outcome badge-${entry.decision.outcome}">${OUTCOME_LABEL[entry.decision.outcome]}</span></td>
       <td class="seq-cell">${String(entry.seq).padStart(4, '0')}</td>
-      <td class="ts-cell mono">${tsFormatted}</td>
-      <td><span class="badge-outcome badge-${entry.decision.outcome}">${entry.decision.outcome}</span></td>
-      <td class="tool-cell mono">${entry.request.tool}</td>
-      <td class="principal-cell">${entry.request.principal}</td>
-      <td class="prose-cell">
-        <span class="prose-main">${prose}</span>
-        <span class="prose-reason mono">${entry.decision.reason_code}</span>
-        ${entry.decision.outcome !== 'ALLOW' ? `<span class="void-mark">Did not execute</span>` : ''}
-        ${isTamperedTarget ? `
-          <span class="tamper-note">Anomaly: ${getTamperExplanation(state.verifyResult.why)}</span>
-        ` : ''}
+      <td class="ts-cell">${tsFormatted}</td>
+      <td class="tool-cell">${entry.request.tool}</td>
+      <td class="cell-stack">
+        <span class="cell-top">${entry.request.principal}</span>
+        <span class="cell-sub">${entry.request.agent}</span>
       </td>
-      <td class="ts-cell mono" style="font-size:11px;">${hashFragment}</td>
-      <td style="text-align: right;">
-        <button class="btn-pill" style="padding: 2px 8px; font-size: 11px;" onclick="event.stopPropagation(); inspectRow(${entry.seq})">Inspect</button>
+      <td class="cell-stack prose-cell">
+        <span class="cell-top" title="${prose.replace(/"/g, '&quot;')}">${prose}</span>
+        <span class="cell-sub">
+          ${entry.decision.reason_code}${entry.decision.outcome !== 'ALLOW'
+            ? ' &middot; <span class="void-mark">Not executed</span>' : ''}
+          ${isTamperedTarget
+            ? ` &middot; <span class="tamper-note">Anomaly: ${state.verifyResult.why}</span>` : ''}
+        </span>
       </td>
+      <td class="hash-cell">${hashFragment}</td>
     `;
 
     tbody.appendChild(row);

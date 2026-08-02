@@ -4,187 +4,281 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aegis - Policy &amp; Provenance Gateway</title>
-  
-  <!-- Fonts are self-hosted (see static/fonts.css). Nothing on this page
-       reaches a third-party origin: a provenance console that phones out to a
-       CDN on load is a bad answer to an obvious question, and it breaks any
-       offline or air-gapped demo. -->
+
+  <!-- Fonts are self-hosted (static/fonts.css). Nothing on this page reaches a
+       third-party origin: a provenance console that phones out to a CDN on load
+       is a bad answer to an obvious question, and it breaks offline demos. -->
   <link rel="preload" href="/static/fonts/GeneralSans-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/IBMPlexMono-400.woff2" as="font" type="font/woff2" crossorigin>
+
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <!-- Lucide icon paths, vendored inline (ISC). No icon library, no CDN. -->
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></symbol>
+    <symbol id="i-scroll-text" viewBox="0 0 24 24"><path d="M15 12h-5" /> <path d="M15 8h-5" /> <path d="M19 17V5a2 2 0 0 0-2-2H4" /> <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" /></symbol>
+    <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /></symbol>
+    <symbol id="i-link-2" viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2" /> <path d="M15 7h2a5 5 0 1 1 0 10h-2" /> <line x1="8" x2="16" y1="12" y2="12" /></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+    <symbol id="i-key-round" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /> <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></symbol>
+    <symbol id="i-shield-x" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m14.5 9.5-5 5" /> <path d="m9.5 9.5 5 5" /></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></symbol>
+    <symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /> <path d="m9 12 2 2 4-4" /></symbol>
+    <symbol id="i-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /> <path d="M21 3v5h-5" /> <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /> <path d="M8 16H3v5" /></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34" /> <circle cx="11" cy="11" r="8" /></symbol>
+  </defs>
+</svg>
+
   <div id="app" class="app-shell">
-    
-    <!-- Top Navigation Bar -->
-    <header class="top-nav">
-      <div class="nav-brand">
-        <div class="brand-text">
-          <span class="brand-title">Aegis</span>
-          <span class="brand-sub">Policy &amp; Provenance Gateway</span>
-        </div>
+
+    <!-- ============================== SIDEBAR ============================== -->
+    <aside class="sidebar">
+      <div class="side-brand">
+        <span class="brand-mark"><svg class="ic" aria-hidden="true"><use href="#i-shield"></use></svg></span>
+        <span class="brand-name">Aegis</span>
       </div>
 
-      <div class="nav-right">
-        <div class="meta-pill">
-          <span class="meta-label">Contract</span>
-          <span class="meta-val mono" id="contractVersion">v1.0.0</span>
-        </div>
-        <button id="btnToggleSync" class="btn-pill sync-on" title="Toggle Auto-Sync Polling">
-          <span class="sync-dot"></span>
-          <span>Auto-Sync <strong id="syncStateText">ON</strong></span>
+      <div class="side-policy">
+        <button type="button" class="policy-pick" id="btnViewPolicyHeader">
+          <span class="policy-left">
+            <span class="policy-dot" aria-hidden="true"></span>
+            <span class="policy-text">
+              <span class="policy-label">Policy</span>
+              <span class="policy-name mono">inbox-assistant</span>
+            </span>
+          </span>
+          <svg class="ic ic-sm" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
         </button>
-        <button id="btnViewPolicyHeader" class="btn-pill">
-          <span>Policy Spec</span>
-        </button>
-        <div class="status-pill online">
-          <span class="status-dot"></span>
-          <span>System Online</span>
-        </div>
       </div>
-    </header>
 
-    <!-- Main Content Workspace -->
-    <main class="main-content">
-      
-      <!-- Verification Centerpiece Banner (No Icons, No Bracket Symbols) -->
-      <section class="banner-card intact" id="integrityBanner">
-        <div class="banner-left">
-          <div class="banner-text">
-            <div class="banner-title-row">
-              <h2 id="integrityTitle">Provenance Chain Verified</h2>
-              <span class="chip-subtle mono" id="cryptoChip">SHA-256 Chain · Ed25519 Signed</span>
-            </div>
-            <p id="integrityDesc" class="banner-desc">All entries cryptographically verified against tamper-evident signatures. Zero anomalies detected.</p>
-            <p class="sr-only" role="status" aria-live="polite" id="integrityLive">Chain verified.</p>
-          </div>
-        </div>
+      <!-- Every item goes somewhere real. Dashboard and Settings from the
+           mock were dropped rather than shipped as dead links. -->
+      <nav class="side-nav">
+        <a class="nav-item is-active" href="#logSection" aria-current="page">
+          <span class="nav-bar" aria-hidden="true"></span>
+          <svg class="ic" aria-hidden="true"><use href="#i-scroll-text"></use></svg><span>Query Log</span>
+        </a>
+        <a class="nav-item" href="#chainSection">
+          <span class="nav-bar" aria-hidden="true"></span>
+          <svg class="ic" aria-hidden="true"><use href="#i-link-2"></use></svg><span>Chain Verification</span>
+        </a>
+        <a class="nav-item" href="#" id="navPolicy">
+          <span class="nav-bar" aria-hidden="true"></span>
+          <svg class="ic" aria-hidden="true"><use href="#i-shield-check"></use></svg><span>Policy Rules</span>
+        </a>
+      </nav>
+    </aside>
 
-        <div class="banner-right">
-          <button id="btnVerify" class="btn-primary-teal">
-            <span>Run Chain Verification</span>
+    <div class="console-col">
+
+      <!-- ============================== TOPBAR ============================= -->
+      <header class="topbar">
+        <h2 class="topbar-title">Query Log</h2>
+        <div class="topbar-right">
+          <button type="button" class="icon-btn" id="btnFocusSearch" aria-label="Search the log">
+            <svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg>
           </button>
-        </div>
-      </section>
-
-      <!-- THE CENTREPIECE: the provenance log drawn as what it actually is,
-           a run of nodes each cryptographically linked to the one before it.
-           The table further down is the detail; this strip is the proof. -->
-      <section class="chain-section" id="chainSection">
-        <div class="chain-head">
-          <span class="chain-title">Provenance Chain</span>
-          <span class="chain-meta mono" id="chainMeta">0 nodes</span>
-        </div>
-        <div class="chain-scroll">
-          <div class="chain-strip" id="chainStrip" role="img"
-               aria-label="Provenance chain visualisation. The written state is announced below."></div>
-        </div>
-        <div class="chain-legend">
-          <span class="legend-item"><span class="legend-dot legend-allow"></span>Allowed</span>
-          <span class="legend-item"><span class="legend-dot legend-stepup"></span>Step-up required</span>
-          <span class="legend-item"><span class="legend-dot legend-deny"></span>Denied</span>
-          <span class="legend-item"><span class="legend-dot legend-dead"></span>Unverified past a break</span>
-        </div>
-      </section>
-
-      <!-- Action & Scenario Controls Card -->
-      <div class="controls-card">
-        <div class="controls-group">
-          <span class="group-label">Demo Scenarios</span>
-          <div class="btn-grid">
-            <button id="btnBenign" class="btn-card btn-benign">
-              <span>Run Benign Demo</span>
-            </button>
-            <button id="btnInjected" class="btn-card btn-injected">
-              <span>Run Injected Demo</span>
-            </button>
-            <button id="btnOverreach" class="btn-card btn-overreach">
-              <span>Run Over-reach Demo</span>
-            </button>
-            <button id="btnCustomAct" class="btn-card">
-              <span>Simulate Action</span>
-            </button>
+          <button type="button" class="btn-pill" id="btnToggleSync" title="Toggle auto-sync polling">
+            <span class="sync-dot" aria-hidden="true"></span>
+            <span>Auto-sync <strong id="syncStateText">ON</strong></span>
+          </button>
+          <div class="user-pill">
+            <span class="user-avatar">A</span>
+            <span class="user-name">alice@corp</span>
           </div>
         </div>
+      </header>
 
-        <div class="controls-group">
-          <span class="group-label">Tamper Testing</span>
-          <div class="btn-grid">
-            <select id="tamperSeqSelect" class="form-input mono">
-              <option value="">Target Entry...</option>
-            </select>
-            <select id="tamperModeSelect" class="form-input">
-              <option value="content_altered">Modify Content</option>
-              <option value="chain_link">Break Prev Hash Link</option>
-              <option value="bad_signature">Invalidate Signature</option>
-            </select>
-            <button id="btnInjectTamper" class="btn-danger-subtle">
-              <span>Tamper Entry</span>
-            </button>
+      <!-- =============================== MAIN ============================== -->
+      <main class="main-content">
+        <h1 class="page-title">Query Log</h1>
+        <p class="page-sub">Agent tool-call decisions with outcome, principal, reason, and receipt hash.</p>
+
+        <!-- Four stat cards. Every value is computed from the live chain: no
+             invented figures, and no trend deltas, because we hold no history
+             to compute a delta against. -->
+        <section class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-icon"><svg class="ic" aria-hidden="true"><use href="#i-shield-check"></use></svg></span>
+            <span class="stat-label">Allow rate</span>
+            <span class="stat-value mono" id="statAllowRate">0%</span>
           </div>
-        </div>
+          <div class="stat-card">
+            <span class="stat-icon"><svg class="ic" aria-hidden="true"><use href="#i-key-round"></use></svg></span>
+            <span class="stat-label">Step-ups</span>
+            <span class="stat-value mono" id="statStepUps">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon"><svg class="ic" aria-hidden="true"><use href="#i-shield-x"></use></svg></span>
+            <span class="stat-label">Denials</span>
+            <span class="stat-value mono" id="statDenials">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon"><svg class="ic" aria-hidden="true"><use href="#i-layers"></use></svg></span>
+            <span class="stat-label">Chain entries</span>
+            <span class="stat-value mono" id="statEntries">0</span>
+          </div>
+        </section>
+
+        <!-- Status banner + chain strip. The strip is the proof; the table
+             below is the detail. -->
+        <section class="banner-card intact" id="integrityBanner">
+          <div class="banner-left">
+            <div class="banner-text">
+              <div class="banner-title-row">
+                <h2 id="integrityTitle">Provenance Chain Verified</h2>
+                <span class="chip-subtle mono" id="cryptoChip">SHA-256 Chain, Ed25519 Signed</span>
+              </div>
+              <p id="integrityDesc" class="banner-desc">All entries cryptographically verified against tamper-evident signatures.</p>
+              <p class="sr-only" role="status" aria-live="polite" id="integrityLive">Chain verified.</p>
+            </div>
+          </div>
+          <div class="banner-right">
+            <button id="btnVerify" class="btn-accent">Run Chain Verification</button>
+          </div>
+        </section>
+
+        <section class="panel" id="chainSection">
+          <div class="panel-head">
+            <span class="panel-title">Provenance Chain</span>
+            <span class="panel-meta mono" id="chainMeta">0 nodes</span>
+          </div>
+          <div class="chain-scroll">
+            <div class="chain-strip" id="chainStrip" role="img"
+                 aria-label="Provenance chain visualisation. The written state is announced in the status region."></div>
+          </div>
+          <div class="chain-legend">
+            <span class="legend-item"><span class="legend-dot legend-allow"></span>Allowed</span>
+            <span class="legend-item"><span class="legend-dot legend-stepup"></span>Step-up required</span>
+            <span class="legend-item"><span class="legend-dot legend-deny"></span>Denied</span>
+            <span class="legend-item"><span class="legend-dot legend-dead"></span>Unverified past a break</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><span class="panel-title">Scenarios &amp; Tamper Testing</span></div>
+          <div class="controls-row">
+            <div class="controls-group">
+              <span class="group-label">Demo scenarios</span>
+              <div class="btn-grid">
+                <button id="btnBenign" class="btn-outline btn-benign"><span>Run Benign</span></button>
+                <button id="btnInjected" class="btn-outline btn-injected"><span>Run Injected</span></button>
+                <button id="btnOverreach" class="btn-outline btn-overreach"><span>Run Over-reach</span></button>
+                <button id="btnCustomAct" class="btn-outline"><span>Simulate Action</span></button>
+              </div>
+            </div>
+            <div class="controls-group">
+              <span class="group-label">Tamper testing (demo only)</span>
+              <div class="btn-grid">
+                <select id="tamperSeqSelect" class="ctl mono"><option value="">Target entry...</option></select>
+                <select id="tamperModeSelect" class="ctl">
+                  <option value="content_altered">Modify content</option>
+                  <option value="chain_link">Break prev hash link</option>
+                  <option value="bad_signature">Invalidate signature</option>
+                </select>
+                <button id="btnInjectTamper" class="btn-danger">Tamper entry</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================ QUERY LOG ============================ -->
+        <section id="logSection">
+          <div class="filter-bar">
+            <div class="filter-controls">
+              <span class="ctl-wrap">
+                <select id="filterOutcome" class="ctl" aria-label="Filter by outcome">
+                  <option value="ALL">All outcomes</option>
+                  <option value="ALLOW">Allowed</option>
+                  <option value="STEP_UP">Step-up required</option>
+                  <option value="DENY">Denied</option>
+                </select>
+              </span>
+              <span class="ctl-wrap">
+                <select id="filterTool" class="ctl" aria-label="Filter by tool"><option value="ALL">All tools</option></select>
+              </span>
+              <span class="ctl-wrap">
+                <select id="filterPrincipal" class="ctl" aria-label="Filter by principal"><option value="ALL">All principals</option></select>
+              </span>
+              <span class="ctl-wrap">
+                <select id="filterRange" class="ctl" aria-label="Filter by time range">
+                  <option value="ALL">All time</option>
+                  <option value="1h">Last hour</option>
+                  <option value="24h">Last 24 hours</option>
+                  <option value="7d">Last 7 days</option>
+                </select>
+              </span>
+            </div>
+            <div class="filter-right">
+              <span class="filter-count mono" id="filterCount">0 of 0</span>
+              <div class="search-field">
+                <input type="text" id="searchInput" placeholder="Search tool, principal, args, reason...">
+              </div>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th class="c-seq">Seq</th>
+                  <th class="c-ts">Timestamp (UTC)</th>
+                  <th class="c-out">Outcome</th>
+                  <th class="c-tool">Tool</th>
+                  <th class="c-prin">Principal / Agent</th>
+                  <th class="c-reason">Reason &amp; Receipt</th>
+                  <th class="c-hash">Hash Fragment</th>
+                </tr>
+              </thead>
+              <tbody id="logTableBody"></tbody>
+            </table>
+
+            <div class="empty-card hidden" id="emptyState">
+              <h4 class="empty-title">No provenance records in chain</h4>
+              <p class="empty-subtitle">Run a demo scenario above to execute tool calls and populate the audit log.</p>
+            </div>
+          </div>
+
+          <div class="table-foot" id="tableFoot">
+            <div class="pager" id="pager"></div>
+            <label class="page-size">
+              <span>Show</span>
+              <span class="ctl-wrap">
+                <select id="pageSize" class="ctl">
+                  <option value="10">10</option>
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="0">All</option>
+                </select>
+              </span>
+            </label>
+          </div>
+        </section>
+      </main>
+
+      <!-- ============================= STATUS BAR ============================ -->
+      <footer class="statusbar">
+        <span class="sb-item"><svg class="ic ic-sm sb-ok" aria-hidden="true"><use href="#i-circle-check"></use></svg><span class="sb-strong">All systems operational</span></span>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <span class="sb-item"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-refresh-cw"></use></svg><span id="statusSync">Awaiting first sync</span></span>
+        <span class="sb-item sb-right"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-shield-check"></use></svg>Chain integrity <span id="statusChain" class="sb-ok">Verified</span></span>
+        <span class="sb-sep" aria-hidden="true"></span>
+        <span class="sb-item mono">Contract <span id="contractVersion">v1.2.0</span></span>
+      </footer>
+    </div>
+
+    <!-- ============================== DRAWER ============================== -->
+    <aside class="drawer-panel hidden" id="inspectPanel">
+      <div class="drawer-header">
+        <h3>Entry <span class="mono" id="inspectSeqNum">0000</span></h3>
+        <button class="btn-close" id="btnCloseInspect">&times;</button>
       </div>
+      <div class="drawer-body" id="inspectPanelBody"></div>
+    </aside>
 
-      <!-- Filter Pills & Search Field Bar (Plain Text Labels Alone) -->
-      <div class="filter-bar">
-        <div class="pill-group">
-          <button class="pill active" data-filter-outcome="ALL">All Entries (<span id="countAll" class="mono">0</span>)</button>
-          <button class="pill pill-allow" data-filter-outcome="ALLOW">ALLOW (<span id="countAllow" class="mono">0</span>)</button>
-          <button class="pill pill-stepup" data-filter-outcome="STEP_UP">STEP_UP (<span id="countStepUp" class="mono">0</span>)</button>
-          <button class="pill pill-deny" data-filter-outcome="DENY">DENY (<span id="countDeny" class="mono">0</span>)</button>
-        </div>
-
-        <div class="search-field">
-          <input type="text" id="searchInput" placeholder="Search tool, principal, args, reason...">
-        </div>
-      </div>
-
-      <!-- Workspace Area: Audit Table & Inspector Drawer -->
-      <div class="workspace-area">
-        
-        <!-- Audit Table Card -->
-        <div class="table-card">
-          <table class="audit-table">
-            <thead>
-              <tr>
-                <th style="width: 68px;">Seq</th>
-                <th style="width: 175px;">Timestamp (UTC)</th>
-                <th style="width: 110px;">Outcome</th>
-                <th style="width: 130px;">Tool</th>
-                <th style="width: 180px;">Principal / Agent</th>
-                <th>Enforcement Reason &amp; Prose Receipt</th>
-                <th style="width: 110px;">Hash Fragment</th>
-                <th style="width: 80px; text-align: right;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="logTableBody">
-              <!-- Dynamic Table Rows -->
-            </tbody>
-          </table>
-
-          <!-- Empty State -->
-          <div class="empty-card hidden" id="emptyState">
-            <h4 class="empty-title">No provenance records in chain</h4>
-            <p class="empty-subtitle">Click "Run Benign Demo" or "Run Injected Demo" above to execute tool calls and populate the audit log.</p>
-          </div>
-        </div>
-
-        <!-- Right Side Drawer -->
-        <aside class="drawer-panel hidden" id="inspectPanel">
-          <div class="drawer-header">
-            <h3>Entry <span class="mono" id="inspectSeqNum">0000</span></h3>
-            <button class="btn-close" id="btnCloseInspect">&times;</button>
-          </div>
-          <div class="drawer-body" id="inspectPanelBody">
-            <!-- Dynamic Inspection Details -->
-          </div>
-        </aside>
-
-      </div>
-
-    </main>
-
-    <!-- Policy Specification Modal -->
+    <!-- ============================== MODALS ============================== -->
     <div class="modal-backdrop hidden" id="policyModal">
       <div class="modal-card modal-lg">
         <div class="modal-header">
@@ -196,12 +290,11 @@
           <pre class="code-box-yaml mono" id="policyYamlContent">Loading policy YAML...</pre>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn-card" id="btnDismissPolicy">Close</button>
+          <button type="button" class="btn-outline" id="btnDismissPolicy">Close</button>
         </div>
       </div>
     </div>
 
-    <!-- Action Simulation Modal -->
     <div class="modal-backdrop hidden" id="actModal">
       <div class="modal-card">
         <div class="modal-header">
@@ -214,11 +307,11 @@
             <input type="text" id="actPrincipal" class="form-input" value="alice@corp" required>
           </div>
           <div class="form-group">
-            <label for="actAgent">Guarded Agent</label>
+            <label for="actAgent">Guarded agent</label>
             <input type="text" id="actAgent" class="form-input" value="inbox-assistant" required>
           </div>
           <div class="form-group">
-            <label for="actTool">Tool Name</label>
+            <label for="actTool">Tool name</label>
             <select id="actTool" class="form-input">
               <option value="send_email">send_email</option>
               <option value="read_file">read_file</option>
@@ -231,8 +324,8 @@
             <textarea id="actArgsJson" class="form-input mono" rows="4">{"to": "bob@corp", "subject": "Q3 Financials", "body": "Report attached."}</textarea>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn-card" id="btnCancelAct">Cancel</button>
-            <button type="submit" class="btn-primary-teal">Submit to Gateway</button>
+            <button type="button" class="btn-outline" id="btnCancelAct">Cancel</button>
+            <button type="submit" class="btn-accent">Submit to Gateway</button>
           </div>
         </form>
       </div>
