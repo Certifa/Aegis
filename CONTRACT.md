@@ -1,10 +1,13 @@
-# Aegis data contract — `v1.0.0` (FROZEN)
+# Aegis data contract — `v1.1.0` (FROZEN)
 
 The console is built against this document. Everything here is defined in
 `aegis/models.py` and nowhere else — do not redefine these types locally.
 
 `GET /contract` returns the version. If that number changes, a shape changed;
 it will be announced first, and it will be additive.
+
+**1.1.0 adds `GET /receipt/{seq}`.** Nothing existing changed — every shape from
+1.0.0 is byte-identical, so no console code needs touching.
 
 ## Running the API
 
@@ -20,11 +23,12 @@ AEGIS_DEV_CORS=1 uvicorn aegis.main:app --reload --port 8000
 | Method + path | Purpose | Returns |
 |---|---|---|
 | `GET /health` | liveness | `{"status": "ok"}` |
-| `GET /contract` | contract version | `{"version": "1.0.0"}` |
+| `GET /contract` | contract version | `{"version": "1.1.0"}` |
+| `GET /receipt/{seq}` | human-readable prose for one entry | `{"seq": int, "text": str}` |
 | `GET /log` | full chain, **newest first** | `LogEntry[]` |
 | `GET /log/verify` | verify the whole chain | `VerifyResult` |
 
-Landing in Phase 4, shapes already fixed:
+Also live:
 
 | Method + path | Purpose | Returns |
 |---|---|---|
@@ -32,6 +36,18 @@ Landing in Phase 4, shapes already fixed:
 | `POST /demo/benign` | scripted benign scenario | `ActResponse[]` |
 | `POST /demo/injected` | scripted injected scenario | `ActResponse[]` |
 | `POST /debug/tamper` | edit a past entry — demo only, env-gated | `{"ok": true}` |
+
+### `GET /receipt/{seq}`
+
+```jsonc
+{ "seq": 2, "text": "Blocked: EUR 5000 exceeds this agent's EUR 50 payment limit." }
+```
+
+One sentence of plain English for an entry, computed on demand. 404 if `seq`
+does not exist. The receipt is **not** part of the hashed entry and never enters
+the chain — that is what keeps `Decision` free of prose, and what makes it
+impossible for an explainer to influence or invalidate a decision. Purely
+cosmetic: render it or don't.
 
 ## `LogEntry`
 
@@ -98,15 +114,16 @@ deliberately logged rather than rejected at the edge — an attack that leaves n
 trace is the wrong failure mode for an audit log — so a key may be missing.
 Those entries appear as `DENY` with `reason_code: no_rule_matched`.
 
-## What is mock right now
+## Nothing is mocked any more
 
-`tests/fixtures/mock_log.json` carries **placeholder zeros** for `entry_hash`,
-`prev_hash`, and `signature`, and `/log/verify` returns a hardcoded `INTACT` so
-the verify button is wired end to end.
+`/log` and `/log/verify` serve the real hash-chained, Ed25519-signed log. The
+Phase 1 fixture is gone from the request path — as promised, the field names,
+types, and lengths never changed, only the values became real.
 
-Phase 3 replaces both with the real SHA-256 chain and Ed25519 signatures.
-**Field names, types, and lengths do not change** — only the values become
-real. Nothing built against this fixture breaks.
+**One consequence:** a freshly started server has an empty chain, so `/log`
+returns `[]` until something populates it. `POST /demo/injected` gives you three
+rows covering every state you need to style — `ALLOW`, `STEP_UP`, and `DENY` —
+and `POST /demo/benign` gives you a single `ALLOW`.
 
-The four fixture entries cover every visual state: `ALLOW`, `STEP_UP`,
-`DENY` (secrets path), `DENY` (over-limit payment).
+`tests/fixtures/mock_log.json` is still in the repo as a shape reference if you
+want to develop offline, but no endpoint reads it.

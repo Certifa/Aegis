@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 
 from aegis.demo import BENIGN_SCRIPT, INJECTED_SCRIPT, ScriptedStep, replay
+from aegis.explainer import explain
 from aegis.interceptor import Interceptor
 from aegis.keys import load_or_generate_keypair
 from aegis.models import (
@@ -132,6 +133,19 @@ def get_log(log: LogDep) -> list[LogEntry]:
 @app.get("/log/verify")
 def get_log_verify(log: LogDep) -> VerifyResult:
     return log.verify()
+
+
+@app.get("/receipt/{seq}")
+def get_receipt(seq: int, log: LogDep) -> dict[str, object]:
+    """Human-readable prose for one entry.
+
+    Computed on demand and never stored: the receipt is not part of the hashed
+    entry, so an explainer can never influence — or invalidate — a decision.
+    """
+    entries = log.entries
+    if not 0 <= seq < len(entries):
+        raise HTTPException(status_code=404, detail=f"no entry at seq {seq}")
+    return {"seq": seq, "text": explain(entries[seq])}
 
 
 @app.post("/act")

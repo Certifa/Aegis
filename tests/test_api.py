@@ -56,7 +56,7 @@ def test_health(client: TestClient) -> None:
 
 
 def test_contract_version(client: TestClient) -> None:
-    assert client.get("/contract").json() == {"version": "1.0.0"}
+    assert client.get("/contract").json() == {"version": "1.1.0"}
 
 
 def test_root_serves_console_ui(client: TestClient) -> None:

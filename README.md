@@ -210,7 +210,8 @@ mypy .            # strict
 | `POST /demo/injected` | Replay the injected scenario | `ActResponse[]` |
 | `POST /debug/tamper` | Corrupt a past entry — **demo only** | `{"ok": true}` |
 | `GET /health` | Liveness | `{"status":"ok"}` |
-| `GET /contract` | Data-contract version | `{"version":"1.0.0"}` |
+| `GET /contract` | Data-contract version | `{"version":"1.1.0"}` |
+| `GET /receipt/{seq}` | Plain-English explanation of one entry | `{seq, text}` |
 
 Exact response shapes live in **[CONTRACT.md](CONTRACT.md)** and are defined once
 in `aegis/models.py`.
@@ -250,14 +251,16 @@ Being explicit about the edges, because a hackathon demo is not a deployment:
 | 2 | Policy engine, canonical JSON, truth-table tests | ✅ done |
 | 3 | Provenance log — hash chain, Ed25519, tamper tests | ✅ done |
 | 4 | Interceptor, tool stubs, routes, deterministic demo replay | ✅ done |
-| 5 | Live agent, explainer | ⬜ |
+| 5 | Live agent, templated explainer | ✅ done |
 | — | Console UI | 🔨 in progress |
 
-109 tests passing; `ruff` and `mypy --strict` clean.
+119 tests passing; `ruff` and `mypy --strict` clean.
 
-Every endpoint above is live. Both scenarios run end to end today over the
-deterministic replay path; Phase 5 adds a real LLM agent on top of the same
-boundary, so the enforcement outcome is identical either way.
+Every endpoint above is live, and both scenarios run end to end two ways: a
+deterministic replay (`/demo/*`, no network) and a real Claude agent
+(`python -m aegis.agent injected`). Both go through the same interceptor, so the
+enforcement outcome is identical whether the model is fooled or not — which is
+the entire claim.
 
 ## Layout
 
