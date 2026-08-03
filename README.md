@@ -7,6 +7,8 @@ evaluated against a deterministic policy (**allow**, **deny**, or **step-up**)
 and written to a hash-chained, cryptographically signed log that can prove
 afterwards that nothing was altered.
 
+**Live: [aegis.certifa.net](https://aegis.certifa.net)**
+
 > Orion Global Hackathon 2026 · demo day Aug 10
 
 ---
@@ -123,7 +125,7 @@ of `/secrets/`, not of `/data/`.
 
 ---
 
-## The three scenarios
+## The three replayable scenarios
 
 | | Agent input | Aegis |
 |---|---|---|
@@ -205,6 +207,31 @@ alignment prevents that, because nothing has gone wrong with the model.
 
 ---
 
+## The console
+
+Served at `/`, from the same process as the API. Nothing on the page reaches a
+third-party origin: fonts, icons and the favicon are all self-hosted, because a
+provenance tool that phones out to a CDN on load is a bad answer to an obvious
+question, and it breaks an offline demo.
+
+The centrepiece is the **chain strip**: the log drawn as what it actually is, a
+run of nodes each cryptographically linked to the one before it. Until it
+existed the chain was only ever a table, which is the one shape that hides the
+linking. The table below it is the detail; the strip is the proof.
+
+A break has to be readable in a still frame, because a screenshot is what ends
+up in a deck. Five redundant signals, none needing hover or animation: a
+physical gap in the line, both stubs in the danger colour, the glow gone, an X
+in the gap, and a `LINK BROKEN` caption. Everything past the break renders dead
+grey, which is not a stylistic choice: `verify()` stops at the first failure, so
+nothing beyond it has been verified at all, and drawing those nodes as healthy
+would misstate what we know.
+
+Glow appears on live chain links and nowhere else on the page. There it is
+diegetic, standing for a real hash reference. Everything else is flat.
+
+---
+
 ## Tamper evidence
 
 Each entry is hash-chained to the one before it, and signed:
@@ -234,7 +261,9 @@ Each is detected independently.
 
 ## Quick start
 
-Requires **Python 3.13**.
+The console is live at **[aegis.certifa.net](https://aegis.certifa.net)** with the
+demo scenarios and tamper controls wired up. To run it yourself you need
+**Python 3.13**.
 
 ```bash
 git clone git@github.com:Certifa/Aegis.git
@@ -246,7 +275,25 @@ pip install -r requirements-dev.txt      # or requirements.txt to skip test tool
 uvicorn aegis.main:app --reload --port 8000
 ```
 
-Then `curl localhost:8000/health` → `{"status":"ok"}`.
+Then `curl localhost:8000/health` → `{"status":"ok"}`, and open
+`localhost:8000` for the console.
+
+### Running the guarded agent
+
+The `/demo/*` endpoints replay each scenario deterministically with no model in
+the loop. To drive the same boundary with a real Claude agent:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+python -m aegis.agent benign      # emails an internal address
+python -m aegis.agent injected    # reads a document carrying a prompt injection
+python -m aegis.agent overreach   # pays an ordinary invoice, no injection at all
+python -m aegis.agent fraud       # reads a fraudulent invoice, no injection at all
+```
+
+Every call the agent attempts goes through the same interceptor as the scripted
+path, so the enforcement outcome is identical either way. `fraud` has no
+`/demo/*` twin; it exists only as a live-agent scenario.
 
 ### Environment
 
@@ -282,6 +329,8 @@ mypy .            # strict
 | `GET /health` | Liveness | `{"status":"ok"}` |
 | `GET /contract` | Data-contract version | `{"version":"1.2.0"}` |
 | `GET /receipt/{seq}` | Plain-English explanation of one entry | `{seq, text}` |
+| `GET /policy` | The policy as loaded at startup, for the console viewer | `{policy_yaml}` |
+| `GET /` | The console | HTML |
 
 Exact response shapes live in **[CONTRACT.md](CONTRACT.md)** and are defined once
 in `aegis/models.py`.
@@ -315,6 +364,8 @@ Being explicit about the edges, because a hackathon demo is not a deployment:
 
 ## Status
 
+Feature-complete. All ten acceptance criteria from the build spec are met.
+
 | Phase | | |
 |---|---|---|
 | 1 | Data contracts + mock `/log` for the console | ✅ done |
@@ -322,16 +373,17 @@ Being explicit about the edges, because a hackathon demo is not a deployment:
 | 3 | Provenance log: hash chain, Ed25519, tamper tests | ✅ done |
 | 4 | Interceptor, tool stubs, routes, deterministic demo replay | ✅ done |
 | 5 | Live agent, templated explainer, over-reach scenario | ✅ done |
-| - | Console UI | 🔨 in progress |
+| - | Console UI: chain strip, stat cards, receipts, tamper alerts | ✅ done |
+| - | Deployed to a public URL | ✅ done |
 
-123 tests passing; `ruff` and `mypy --strict` clean.
+**127 tests passing; `ruff` and `mypy --strict` clean.**
 
-Every endpoint above is live, and both scenarios run end to end two ways: a
-All three scenarios run end to end two ways: a deterministic replay (`/demo/*`,
-no network) and a real Claude agent (`python -m aegis.agent
-benign|injected|overreach`). Both go through the same interceptor, so the
-enforcement outcome is identical whether the model is fooled or not, which is
-the entire claim, and which the injection finding above bears out.
+Three scenarios replay deterministically through `/demo/*` with no model in the
+loop, and four run against a live Claude agent. Both paths go through the same
+interceptor, so the enforcement outcome is identical whether the model is fooled
+or not. That is the entire claim, and the injection findings above are what test
+it: the model defended itself twice, and the decision would have been the same
+either way.
 
 ## Layout
 
@@ -343,12 +395,16 @@ aegis/
   provenance.py   append + verify, hash chain and signatures
   keys.py         Ed25519 identity
   interceptor.py  tool call -> ActionRequest -> decision
-  tools.py        stubs
-  agent.py        the guarded LLM
+  tools.py        stubs, and the documents read_file serves
+  agent.py        the guarded LLM, plus its CLI
+  demo.py         deterministic scenario replays
   explainer.py    optional, read-only, post-decision prose
-  main.py         FastAPI routes
+  main.py         FastAPI routes and the console
   policies/       one YAML per agent
-tests/
+  static/         console: index.html, style.css, app.js
+    fonts/        General Sans + IBM Plex Mono, self-hosted
+tests/            127 tests
+Dockerfile        production image
 ```
 
 ## Team
