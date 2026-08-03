@@ -66,6 +66,15 @@ def test_root_serves_console_ui(client: TestClient) -> None:
     assert "<!DOCTYPE html>" in response.text
 
 
+def test_pubkey_is_published(client: TestClient) -> None:
+    """Without a published key the signatures are unverifiable by anyone but
+    this process, which makes "cryptographically signed" a claim rather than a
+    property."""
+    body = client.get("/pubkey").json()
+    assert body["algorithm"] == "ed25519"
+    assert len(bytes.fromhex(body["public_key"])) == 32
+
+
 def test_policy_endpoint(client: TestClient) -> None:
     response = client.get("/policy")
     assert response.status_code == 200

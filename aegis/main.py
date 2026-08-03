@@ -150,6 +150,18 @@ def get_policy(policy_yaml: PolicyYamlDep) -> dict[str, str]:
     return {"policy_yaml": policy_yaml}
 
 
+@app.get("/pubkey")
+def get_pubkey(log: LogDep) -> dict[str, str]:
+    """The Ed25519 public key, as hex.
+
+    Without this the signatures are unverifiable by anyone but this process,
+    which makes "cryptographically signed" a claim rather than a property.
+    Publishing it is what lets a third party check the chain with verify_chain.py
+    and no Aegis code at all.
+    """
+    return {"public_key": log.public_key_hex, "algorithm": "ed25519"}
+
+
 @app.get("/log")
 def get_log(log: LogDep) -> list[LogEntry]:
     """Full chain, newest first (spec section 7).

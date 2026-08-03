@@ -259,6 +259,51 @@ Each is detected independently.
 
 ---
 
+## Verify it yourself, without trusting us
+
+`GET /log/verify` is the process that wrote the log checking its own work. That
+is worth exactly as much as you trust that process, which is the wrong amount
+for a provenance system.
+
+So the chain and the public key are both published, and
+[`verify_chain.py`](verify_chain.py) re-derives every hash and checks every
+signature from that published data alone. It **imports nothing from Aegis** (a
+test asserts this) and restates the canonical-JSON rule rather than importing
+it, so agreement between the two is evidence rather than tautology. Its only
+dependency is `cryptography`, for Ed25519, which means the signature check does
+not come from us either.
+
+```bash
+pip install cryptography
+python verify_chain.py --url https://aegis.certifa.net
+```
+
+```
+INTACT: 6 entries verified
+
+Every hash was recomputed and every signature checked by this script,
+which shares no code with the system that produced the chain.
+```
+
+Tamper an entry from the console, run it again, and it names the break:
+
+```
+BROKEN: entry 2: content_altered (recomputed hash differs)
+```
+
+It exits 0 when intact and 1 when broken, so it works in a pipeline. It also
+takes a chain file directly, if you would rather verify an archived log than a
+live one:
+
+```bash
+python verify_chain.py aegis-log.jsonl <public-key-hex>
+```
+
+That is the difference between "trust our verify button" and "here is the log,
+here is the key, check it yourself".
+
+---
+
 ## Quick start
 
 The console is live at **[aegis.certifa.net](https://aegis.certifa.net)** with the
@@ -330,6 +375,7 @@ mypy .            # strict
 | `GET /contract` | Data-contract version | `{"version":"1.2.0"}` |
 | `GET /receipt/{seq}` | Plain-English explanation of one entry | `{seq, text}` |
 | `GET /policy` | The policy as loaded at startup, for the console viewer | `{policy_yaml}` |
+| `GET /pubkey` | Ed25519 public key, so anyone can verify the chain | `{public_key, algorithm}` |
 | `GET /` | The console | HTML |
 
 Exact response shapes live in **[CONTRACT.md](CONTRACT.md)** and are defined once
@@ -376,7 +422,7 @@ Feature-complete. All ten acceptance criteria from the build spec are met.
 | - | Console UI: chain strip, stat cards, receipts, tamper alerts | ✅ done |
 | - | Deployed to a public URL | ✅ done |
 
-**127 tests passing; `ruff` and `mypy --strict` clean.**
+**135 tests passing; `ruff` and `mypy --strict` clean.**
 
 Three scenarios replay deterministically through `/demo/*` with no model in the
 loop, and four run against a live Claude agent. Both paths go through the same
@@ -403,7 +449,8 @@ aegis/
   policies/       one YAML per agent
   static/         console: index.html, style.css, app.js
     fonts/        General Sans + IBM Plex Mono, self-hosted
-tests/            127 tests
+tests/            135 tests
+verify_chain.py   independent verifier, imports no Aegis code
 Dockerfile        production image
 ```
 
