@@ -511,11 +511,11 @@ select.ctl.mono { font-family: var(--font-data); font-size: 12px; }
 @media (prefers-reduced-motion: no-preference) {
   .chain-strip.is-sweeping .chain-node .node-dot {
     animation: node-wake 260ms ease-out backwards;
-    animation-delay: calc(var(--i, 0) * 70ms);
+    animation-delay: calc(var(--i, 0) * var(--stagger, 70ms));
   }
   .chain-strip.is-sweeping .chain-link {
     animation: link-wake 260ms ease-out backwards;
-    animation-delay: calc(var(--i, 0) * 70ms);
+    animation-delay: calc(var(--i, 0) * var(--stagger, 70ms));
   }
 }
 @keyframes node-wake { from { opacity: .25; transform: scale(.78); } to { opacity: 1; transform: scale(1); } }

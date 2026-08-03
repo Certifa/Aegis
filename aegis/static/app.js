@@ -613,6 +613,13 @@ function renderChainStrip() {
   // what actually makes this a beat rather than a throb.
   const sig = ok ? 'ok:' + nodes.length : 'broken:' + broken_at;
   if (state.lastChainSig !== undefined && state.lastChainSig !== sig) {
+    // The per-node stagger has to scale with chain length. At a flat 70ms it
+    // is a beat for six nodes and a five-second light show for sixty-nine,
+    // which is longer than the 2.5s poll interval and reads as constant
+    // blinking. Budget the whole sweep instead and divide it up.
+    const stagger = Math.min(70, Math.max(6, Math.round(900 / nodes.length)));
+    strip.style.setProperty('--stagger', stagger + 'ms');
+
     strip.classList.remove('is-sweeping');
     void strip.offsetWidth;
     strip.classList.add('is-sweeping');
@@ -620,7 +627,7 @@ function renderChainStrip() {
     clearTimeout(state.sweepTimer);
     state.sweepTimer = setTimeout(
       () => strip.classList.remove('is-sweeping'),
-      nodes.length * 70 + 400,
+      nodes.length * stagger + 400,
     );
   }
   state.lastChainSig = sig;
