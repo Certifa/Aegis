@@ -57,11 +57,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     demo_mode = os.getenv("AEGIS_DEMO_MODE") == "1"
     policy = load_policy(_POLICY_PATH)
+    # Read once, here, alongside the policy the engine will actually use, so the
+    # two cannot drift. See get_policy() for why that matters.
+    policy_yaml = _POLICY_PATH.read_text(encoding="utf-8")
     keypair = load_or_generate_keypair(demo_mode=demo_mode)
     log = ProvenanceLog(keypair, Path(os.getenv("AEGIS_LOG_PATH", "aegis-log.jsonl")))
     log.load()  # a chain written before a restart is still ours
 
     app.state.policy = policy
+    app.state.policy_yaml = policy_yaml
     app.state.log = log
     app.state.interceptor = Interceptor(policy, log)
     app.state.demo_mode = demo_mode
@@ -103,9 +107,14 @@ def _demo_mode(request: Request) -> bool:
     return cast(bool, request.app.state.demo_mode)
 
 
+def _policy_yaml(request: Request) -> str:
+    return cast(str, request.app.state.policy_yaml)
+
+
 LogDep = Annotated[ProvenanceLog, Depends(_log)]
 InterceptorDep = Annotated[Interceptor, Depends(_interceptor)]
 DemoModeDep = Annotated[bool, Depends(_demo_mode)]
+PolicyYamlDep = Annotated[str, Depends(_policy_yaml)]
 
 
 class TamperCommand(BaseModel):
@@ -128,9 +137,17 @@ def contract() -> dict[str, str]:
 
 
 @app.get("/policy")
-def get_policy() -> dict[str, str]:
-    """Returns the active YAML policy content for console visualization."""
-    return {"policy_yaml": _POLICY_PATH.read_text()}
+def get_policy(policy_yaml: PolicyYamlDep) -> dict[str, str]:
+    """The policy text as loaded at startup: the one actually being enforced.
+
+    Deliberately NOT a fresh read from disk. evaluate() uses the Policy parsed
+    once in the lifespan handler, so re-reading the file here would let the
+    console display a rule that is not in force. Editing the YAML on a running
+    server made /policy report a EUR 100000 ceiling while the engine kept
+    refusing at EUR 50, which for a policy viewer is the one bug that undoes
+    the point of having one.
+    """
+    return {"policy_yaml": policy_yaml}
 
 
 @app.get("/log")

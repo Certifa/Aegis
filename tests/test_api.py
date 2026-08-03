@@ -72,6 +72,37 @@ def test_policy_endpoint(client: TestClient) -> None:
     assert "principal: alice@corp" in response.json()["policy_yaml"]
 
 
+def test_policy_serves_what_is_enforced_not_what_is_on_disk(client: TestClient) -> None:
+    """A policy viewer that can show a rule which is not in force is worse than
+    no viewer at all.
+
+    evaluate() uses the Policy parsed once at startup, so if /policy re-read the
+    file per request the console could display a EUR 100000 ceiling while the
+    engine kept refusing at EUR 50. Rewrite the file underneath a running server
+    and the endpoint must not notice.
+    """
+    import aegis.main
+
+    shown_before = client.get("/policy").json()["policy_yaml"]
+    assert "max_eur: 50" in shown_before
+
+    # Rewrite the policy on disk, exactly as an operator editing it would.
+    tampered = aegis.main._POLICY_PATH.read_text().replace(
+        "max_eur: 50 }", "max_eur: 100000 }"
+    )
+    original = aegis.main._POLICY_PATH.read_text()
+    aegis.main._POLICY_PATH.write_text(tampered)
+    try:
+        assert client.get("/policy").json()["policy_yaml"] == shown_before
+
+        # And the engine still enforces the loaded ceiling, which is the whole
+        # reason the endpoint must not drift.
+        body = act(client, "make_payment", amount_eur=5000, iban="DE89", memo="x")
+        assert body["decision"]["outcome"] == "DENY"
+    finally:
+        aegis.main._POLICY_PATH.write_text(original)
+
+
 # -- /act -----------------------------------------------------------------------
 
 
