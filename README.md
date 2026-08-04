@@ -372,7 +372,7 @@ mypy .            # strict
 | `POST /demo/overreach` | Replay the over-reach scenario | `ActResponse[]` |
 | `POST /debug/tamper` | Corrupt a past entry (**demo only**) | `{"ok": true}` |
 | `GET /health` | Liveness | `{"status":"ok"}` |
-| `GET /contract` | Data-contract version | `{"version":"1.2.0"}` |
+| `GET /contract` | Data-contract version | `{"version":"1.3.0"}` |
 | `GET /receipt/{seq}` | Plain-English explanation of one entry | `{seq, text}` |
 | `GET /policy` | The policy as loaded at startup, for the console viewer | `{policy_yaml}` |
 | `GET /pubkey` | Ed25519 public key, so anyone can verify the chain | `{public_key, algorithm}` |
@@ -402,6 +402,19 @@ Being explicit about the edges, because a hackathon demo is not a deployment:
 - **The chain is a local file.** It is tamper-*evident*, not tamper-*proof*: it
   proves alteration happened, it does not prevent it. A real deployment would
   replicate or externally anchor it.
+- **Policy is per-action and has no memory.** `evaluate()` sees one action at a
+  time, so any ceiling can be evaded by splitting: 100 payments of EUR 50 are
+  100 separate `ALLOW` decisions. We tested this rather than assuming it.
+  Cumulative budgets are the obvious next rule kind and are deliberately out of
+  scope for four tools and one chain. Note what survives the gap though: all 100
+  attempts land in the signed chain in order, so the evasion is fully recorded,
+  attributable and tamper-evident. Aegis does not prevent it; it makes it
+  undeniable.
+
+  A live agent found this bypass on its own during the over-reach run, described
+  it, and declined to use it. That is a good argument for the deterministic
+  boundary rather than against it: the next model, or the next release of the
+  same one, may choose differently.
 - **No authentication on the API.** Every caller is trusted.
 - **`STEP_UP` blocks and records.** There is no approval workflow behind it yet.
 - **Tools are stubs.** Nothing is really sent or paid.
