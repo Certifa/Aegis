@@ -78,7 +78,7 @@ OVERREACH_SCRIPT: tuple[ScriptedStep, ...] = (
         tool="make_payment",
         args={
             "amount_eur": 5000,
-            "iban": "DE89370400440532013000",
+            "iban": "DE12500105170648489890",
             "memo": "INV-4471",
         },
         narrative="Pays it, exactly as instructed. EUR 5000 > EUR 50. DENY.",
